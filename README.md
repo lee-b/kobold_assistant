@@ -13,7 +13,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 
 - Install as instructed above
 - Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running,
-  with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5001/api/v1/generate`.
+  with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5001/api/v1/generate` (see Configuration, below, if you need to change this URL).
 - Run `kobold-assistant serve` after installing.
 
 
@@ -28,8 +28,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 - nvidia-cuda-toolkit
 - A bunch of other nvidia libraries like cudnn, required by third-party dependencies. for now, just try to run it and install any missing libraries that it complains about per your distro instructions, and failing that, the nvidia instructions for your distro. If your distro isn't supported by nvidia, all bets are off.
 
-I'll try tidy this up in future using docker or something, so you don't have to worry about dependencies, and it "just works", but nvidia make you sign up to their website to get a
-few of them right now, so there's probably no easy answer at the moment.  Sadly, I don't think this code will get away from any nvidia dependencies for a while.
+I'll try tidy this up in future using docker or something, so you don't have to worry about dependencies, and it "just works", but nvidia make you sign up to their website to get a few of them right now, so there's probably no easy answer at the moment.  Sadly, I don't think this code will get away from any nvidia dependencies for a while.
 
 
 - download the `*.whl`
@@ -41,7 +40,7 @@ few of them right now, so there's probably no easy answer at the moment.  Sadly,
 For now, this is hacky.  I'll improve it soon.
 
 - Install per the instructions above
-- run `python -c 'import kobold_assistant.default_settings as ds; print(ds.__file__)`.  Create a new `custom\_settings.py` file in the same folder as `default\_settings.py`, as follows:
+- run `python -c 'import kobold_assistant.default_settings as ds; print(ds.__file__)`.  Create a new `custom_settings.py` file in the same folder as `default_settings.py`, as follows:
 
 ```
 from .default_settings import *
@@ -49,10 +48,10 @@ from .default_settings import *
 SOME_SETTING = new_value
 ```
 
-where `SOME\_SETTING` is one of the variables already present in `default\_settings.py`
-and new\_value is some new value that you want to use instead.
+where `SOME_SETTING` is one of the variables already present in `default_settings.py`
+and `new_value` is some new value that you want to use instead.
 
-NOTE: Some values depend on others.  for now, you need to copy any dependent variables that come after the variable that you're modifying into your file, so that they use the custom setting.  Again, this is hacky, and I'll clean it up soon.
+**NOTE:** Some values depend on others.  for now, you need to copy any dependent variables that come after the variable that you're modifying into your file, so that they use the custom setting.  Again, this is hacky, and I'll clean it up soon.
 
 
 ## Building (for developers)
@@ -78,9 +77,6 @@ Now edit the files and `poetry run kobold-assistant serve` to test.
 
 - Submit a ticket!  Just please try to be clear about what the problem is.  See: https://www.mediawiki.org/wiki/How_to_report_a_bug for instance.
 
-
-
 ## Contributing
 
-Submit a PR!
-
+Pull requests welcome - don't be shy :)
