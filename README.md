@@ -20,6 +20,9 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 ## Requirements and Installation
 
 - CUDA (so an nvidia GPU... or an nvidia jetson, I guess) for now (you *might* be able to tweak the settings to run on cpu-only).
+- System packages:
+	- GCC (c compiler)
+	- portaudio development libraries
 - KoboldAI, KoboldCPP, or text-generation-webui running locally
   - For now, the only model known to work with this is Alpacino-30b-ggml.  Any Alpaca
     model will PROBABLY work.  I'll add abstractions so that more models work, soon.
@@ -41,6 +44,7 @@ I'll try tidy this up in future using docker or something, so you don't have to 
 For now, this is hacky.  I'll improve it soon.
 
 - Install per the instructions above
+- run `apt-get install -y $(cat requirements.apt)` (for non-debian/non-ubuntu systems, read requirements.apt, figure out the equivalents for your distro, and ideally submit a PR with a similar requirements file and updated README.md for your distro).
 - run `python -c 'import kobold_assistant.default_settings as ds; print(ds.__file__)'`.  Create a new `custom_settings.py` file in the same folder as `default_settings.py`, as follows:
 
 ```
