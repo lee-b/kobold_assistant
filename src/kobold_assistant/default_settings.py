@@ -1,3 +1,5 @@
+MICROPHONE_DEVICE_INDEX = 0
+
 USER_NAME = "User"
 
 GENERATE_URL = "http://localhost:5001/api/v1/generate"

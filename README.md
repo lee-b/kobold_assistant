@@ -14,10 +14,16 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 
 - Install as instructed below
 - Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5001/api/v1/generate` (see Configuration, below, if you need to change this URL).
-- Run `kobold-assistant serve` after installing.
-- Give it a while to start up, especially the first time, as it downloads a few GB of AI models to do the text-to-speech and speech-to-text.
-- If you get any errors about missing libraries, follow the instructions about that under Installation, below.
+- Run one or more of the commands below.  If you get any errors about missing libraries, follow the instructions about that under Installation, below.
 
+### `serve`
+
+- Run `kobold-assistant serve` after installing.
+- Give it a while (at least a few minutes) to start up, especially the first time that you run it, as it downloads a few GB of AI models to do the text-to-speech and speech-to-text, and does some time-consuming generation work at startup, to save time later.  It runs much more comfortably once it gets to the main conversational loop.
+
+### `list-mics`
+
+This lists available microphones that `kobold-assistant` can use, to listen for instructions. See the Configuration and Troubleshooting sections below, for more details on `list-mics` and related settings.
 
 ## Requirements
 
@@ -61,6 +67,12 @@ and `new_value` is some new value that you want to use instead.
 
 **NOTE:** Some values depend on others. For now, you need to copy any dependent variables that come after the variable that you're modifying into your file, so that they use the custom setting. Again, this is hacky, and I'll clean it up soon.
 
+The most important settings are:
+
+```
+MICROPHONE_DEVICE_INDEX   # The device number of the microphone to listen for instructions on. Run `kobold-assistant list-mics` for a list.
+GENERATE_URL              # The server KoboldAI API endpoint for generating text from a prompt using a large language model
+```
 
 ## Building (for developers)
 
@@ -84,9 +96,11 @@ This is a bug in the TTS library, if you press Ctrl-C while it's download a mode
 
 ### 'Detected speech-to-text hallucination: ...'
 
-This happens when the whisper text-to-speech model hallucinates, and kobold-assistant notices. Essentially, it just means that the text-to-speech model misheard you, or only heard noise and made a guess. Check your microphone settings, that the default microphone works, it's not too quiet or too loud, and so on, or just try again: kobold-assistant will recover from this and just go on as if you didn't say anything yet.  If this happens every time, your default microphone setup isn't working. I'll add more intelligent microphone selection and settings for the mic choice in future.
+**CHECK the MICROPHONE_DEVICE_INDEX setting.  See Running, above.**
 
-There may be other hallucinations (random text detected that you didn't actually say) that whisper generates. If you encounter any others, please file a PR or bug report.
+This happens when the whisper text-to-speech model hallucinates, and kobold-assistant notices. Essentially, it just means that the text-to-speech model misheard you, or only heard noise and made a guess. Check the MICROPHONE\_DEVICE\_INDEX setting (or it may be listening for audio on a device that's not producing any audio!).  Check your microphone settings (such as the microphone volume and noise cancellation options), and generally ensure that your microphone works: that it's not too quiet or too loud, and so on.  OR, just try again: kobold-assistant will try to recover from this and just go on as if you didn't say anything yet.  If this happens every time, though, you have a configuration issue.
+
+There may be other hallucinations (random text detected that you didn't actually say) that whisper generates, that aren't currently detected. If you encounter any others, please file a PR or bug report. However, sometimes it will just mishear what you say; that much is normal. Try to perfect your microphone settings, and enunciate as clearly as you can.
 
 
 ## Bugs and support

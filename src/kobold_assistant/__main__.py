@@ -38,8 +38,9 @@ print(f"Loaded settings from {settings.__file__}")
 
 
 def text_to_phonemes(text: str) -> str:
-    # passthrough, since we get around this by prompting the AI to
-    # spell-out any abbreviations instead.
+    # passthrough, since we (try to) get around this by prompting
+    # the AI to spell-out any abbreviations instead, for now.
+    # (but it doesn't work with the current prompt)
     return text
 
 
@@ -53,7 +54,8 @@ def prompt_ai(prompt: str) -> str:
         response_json = f.read().decode('utf-8')
         response = json.loads(response_json)['results'][0]['text']
 
-    print(f"prompt_ai({prompt!r}) -> {response!r}")
+    print(f"The AI returned {response!r}")
+
     return response
 
 
@@ -230,7 +232,7 @@ def serve():
 
     # set up microphone and speech recognition
     stt_engine = stt.Recognizer()
-    mic = stt.Microphone()
+    mic = stt.Microphone(device_index=settings.MICROPHONE_DEVICE_INDEX)
 
     # configure speech recognition
     stt_engine.energy_threshold = settings.STT_ENERGY_THRESHOLD
@@ -267,7 +269,7 @@ def serve():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=('serve',))
+    parser.add_argument('mode', choices=('serve', 'list-mics',))
 
     args = parser.parse_args()
 
@@ -276,4 +278,11 @@ def main():
             return serve()
         except KeyboardInterrupt:
             print("Exiting on user request.")
+
+    elif args.mode == "list-mics":
+        stt_engine = stt.Recognizer()
+        print(f"Using mic_device_index {settings.MICROPHONE_DEVICE_INDEX}, per settings. These are the available microphone devices:\n")
+        mic_list = stt.Microphone.list_microphone_names()
+        for k, v in enumerate(mic_list):
+            print(f"Device {k}: {v}")
 
