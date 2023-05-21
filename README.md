@@ -3,11 +3,11 @@
 A fully offline voice assistant interface to KoboldAI's large language model API. Can
 probably also work online with the KoboldAI horde and online speech-to-text and text-to-speech models, if you really want it to.
 
-It's reasonably good; at least as good as Amazon Alexa, if not better.  It uses the latest coqui "jenny" text to speech model, and openAI's whisper speech recognition, and additionally the model is prompted to know that it's gettign text through speech recognition, so is cautious and clarifies if it's not sure what was heard.
+It's reasonably good; at least as good as Amazon Alexa, if not better.  It uses the latest coqui "jenny" text to speech model, and openAI's whisper speech recognition, and additionally the model is prompted to know that it's getting text through speech recognition, so is cautious and clarifies if it's not sure what was heard. Unfortunately it has been known to go meta and suggest that you to adjust your microphone! ;)
 
 The assistant is called Jenny by default, per the speech model.
 
-You can tweak the assitant name, speech-to-text model, text-to-speech model, prompts, etc. easily through configuration.
+You can tweak the assistant name, speech-to-text model, text-to-speech model, prompts, etc. through configuration, though the config system needs more work to be user-friendly and future-proof.
 
 ## Running
 
