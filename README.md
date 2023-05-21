@@ -19,9 +19,11 @@ You can tweak the assitant name, speech-to-text model, text-to-speech model, pro
 
 ## Requirements and Installation
 
+- KoboldAI, KoboldCPP, or text-generation-webui running locally
+  - For now, the only model known to work with this is Alpacino-30b-ggml.  Any Alpaca
+    model will PROBABLY work.  I'll add abstractions so that more models work, soon.
 - Python >=3.7, <3.11
 - pip
-
 - Ubuntu/Debian
 - nvidia-cuda-toolkit
 - A bunch of other nvidia libraries like cudnn, required by third-party dependencies. for now, just try to run it and install any missing libraries that it complains about per your distro instructions, and failing that, the nvidia instructions for your distro. If your distro isn't supported by nvidia, all bets are off.
