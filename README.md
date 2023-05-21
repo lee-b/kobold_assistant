@@ -84,15 +84,14 @@ This is a bug in the TTS library, if you press Ctrl-C while it's download a mode
 
 ### 'Detected speech-to-text hallucination: ...'
 
-This happens when the whisper text-to-speech model hallucinates, and kobold-assistant notices. Essentially, it just means that the text-to-speech model misheard you,
-so check your microphone and so on, or just try again: kobold-assistant will recover from this and just go on as if you didn't say anything yet.
+This happens when the whisper text-to-speech model hallucinates, and kobold-assistant notices. Essentially, it just means that the text-to-speech model misheard you, or only heard noise and made a guess. Check your microphone settings, that the default microphone works, it's not too quiet or too loud, and so on, or just try again: kobold-assistant will recover from this and just go on as if you didn't say anything yet.  If this happens every time, your default microphone setup isn't working. I'll add more intelligent microphone selection and settings for the mic choice in future.
 
 There may be other hallucinations (random text detected that you didn't actually say) that whisper generates. If you encounter any others, please file a PR or bug report.
 
 
 ## Bugs and support
 
-- Submit a ticket! Just please try to be clear about what the problem is. See: https://www.mediawiki.org/wiki/How_to_report_a_bug for instance.
+- Submit a ticket! Just please try to be clear about what the problem is. See: https://www.mediawiki.org/wiki/How\_to\_report\_a\_bug for instance.
 
 
 ## Contributing

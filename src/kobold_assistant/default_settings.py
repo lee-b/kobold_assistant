@@ -69,5 +69,6 @@ STT_HALLUCINATIONS = (
     'Thanks for watching!',
     'you',
     '\u200b',
+    'Good boy.',
 )
 
