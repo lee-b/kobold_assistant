@@ -23,6 +23,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 - System packages:
 	- GCC (c compiler)
 	- portaudio development libraries
+	- ffmpeg
 - KoboldAI, KoboldCPP, or text-generation-webui running locally
   - For now, the only model known to work with this is Alpacino-30b-ggml.  Any Alpaca
     model will PROBABLY work.  I'll add abstractions so that more models work, soon.
