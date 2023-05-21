@@ -40,7 +40,7 @@ I'll try tidy this up in future using docker or something, so you don't have to 
 For now, this is hacky.  I'll improve it soon.
 
 - Install per the instructions above
-- run `python -c 'import kobold_assistant.default_settings as ds; print(ds.__file__)`.  Create a new `custom_settings.py` file in the same folder as `default_settings.py`, as follows:
+- run `python -c 'import kobold_assistant.default_settings as ds; print(ds.__file__)'`.  Create a new `custom_settings.py` file in the same folder as `default_settings.py`, as follows:
 
 ```
 from .default_settings import *
