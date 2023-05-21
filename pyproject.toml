@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "kobold_assistant"
+version = "0.1.0"
+description = ""
+authors = ["Lee Braiden <leebraid@gmail.com>"]
+license = "AGPL v3"
+readme = "README.md"
+packages = [
+	{ include="kobold_assistant", from="src" },
+]
+
+
+[tool.poetry.scripts]
+kobold-assistant = "kobold_assistant.__main__:main"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+speechrecognition = "^3.10.0"
+pydub = "^0.25.1"
+pyaudio = "^0.2.13"
+d = "^0.2.2"
+openai-whisper = "^20230314"
+urllib3 = "<2"
+torchaudio = "^2.0.2"
+tts = "^0.14.0"
+
+
+[tool.poetry.group.dev.dependencies]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

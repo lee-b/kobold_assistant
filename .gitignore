@@ -1,0 +1,10 @@
+dist/
+*.py[co]
+__pycache__
+.python-version
+.envrc
+settings.yml
+context.txt
+settings.py
+voicebot_settings_override.py
+error.log*
