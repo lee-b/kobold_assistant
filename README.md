@@ -105,7 +105,7 @@ There may be other hallucinations (random text detected that you didn't actually
 
 ## Bugs and support
 
-- Submit a ticket! Just please try to be clear about what the problem is. See: https://www.mediawiki.org/wiki/How\_to\_report\_a\_bug for instance.
+- Submit a ticket! Just please try to be clear about what the problem is. See: https://www.mediawiki.org/wiki/How_to_report_a_bug for instance.
 
 
 ## Contributing
