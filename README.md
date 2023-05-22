@@ -13,7 +13,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 ## Running
 
 - Install as instructed below
-- Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5001/api/v1/generate` (see Configuration, below, if you need to change this URL).
+- Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5000/api/v1/generate` (see Configuration, below, if you need to change this URL).
 - Run one or more of the commands below.  If you get any errors about missing libraries, follow the instructions about that under Installation, below.
 
 ### `serve`
@@ -70,8 +70,22 @@ and `new_value` is some new value that you want to use instead.
 The most important settings are:
 
 ```
-MICROPHONE_DEVICE_INDEX   # The device number of the microphone to listen for instructions on. Run `kobold-assistant list-mics` for a list.
-GENERATE_URL              # The server KoboldAI API endpoint for generating text from a prompt using a large language model
+# The device number of the microphone to listen for instructions on.
+# Run `kobold-assistant list-mics` for a list.
+# NOTE: the default should auto-detect this for you.
+MICROPHONE_DEVICE_INDEX = None
+
+# Automatically determine the microphone volume based
+# on ambient noise levels
+AUTO_CALIBRATE_MIC = True
+
+# Energy level (mic volume) to use when not auto-calibrating (per above).
+# Range is from 0 to 4000, with 1500 being reasonable for a
+# well-calibrated mic.
+STT_ENERGY_THRESHOLD = 1500
+
+# The server KoboldAI API endpoint for generating text from a prompt using a large language model
+GENERATE_URL = "http://localhost:5000/api/v1/generate"
 ```
 
 ## Building (for developers)
@@ -116,4 +130,3 @@ Pull requests welcome - don't be shy :)
 ## Author(s)
 
 - Lee Braiden <leebraid@gmail.com>
-
