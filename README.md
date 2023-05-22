@@ -23,7 +23,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 
 ### `list-mics`
 
-This lists available microphones that `kobold-assistant` can use, to listen for instructions. See the Configuration and Troubleshooting sections below, for more details on `list-mics` and related settings.
+Run `kobold-assistant list-mics` to list available microphones that `kobold-assistant` can use, when listen for the user's instructions. See the Configuration and Troubleshooting sections below, for more details on `list-mics` and related settings.
 
 ## Requirements
 
