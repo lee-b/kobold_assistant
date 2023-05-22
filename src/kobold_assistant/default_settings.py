@@ -1,8 +1,10 @@
-MICROPHONE_DEVICE_INDEX = 0
+MICROPHONE_DEVICE_INDEX = None
 
 USER_NAME = "User"
 
-GENERATE_URL = "http://localhost:5001/api/v1/generate"
+SLOW_AI_RESPONSES = False
+
+GENERATE_URL = "http://localhost:5000/api/v1/generate"
 GENERATE_TEMPERATURE = 0.7
 
 ASSISTANT_NAME = "Jenny"
@@ -22,6 +24,20 @@ Here's an example of such a dialog.
 {USER_NAME}: What is 2x2?
 
 {ASSISTANT_NAME}: It's 4. It's a multiplication; pronounced "two times two". Would you like to know more about multiplication?
+
+{USER_NAME}: Why did the chicken cross the road?
+
+{ASSISTANT_NAME}: I don't know, why did the chicken cross the road?
+
+{USER_NAME}: To get to the other side!
+
+{ASSISTANT_NAME}: [laugh] very funny, {USER_NAME}. Here's another: why did the chicken cross the road?
+
+{USER_NAME}: I don't know, why?
+
+{ASSISTANT_NAME}: No one knows. But the road will have its vengeance!! [laugh]
+
+{USER_NAME}: ha ha ha
 
 """
 
@@ -73,4 +89,8 @@ STT_HALLUCINATIONS = (
     '\u200b',
     'Good boy.',
 )
+
+# this doesn't seem to work well
+AUTO_CALIBRATE_MIC = True
+AUTO_CALIBRATE_MIC_SECONDS = 5
 

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "kobold_assistant"
+name = "kobold-assistant"
 version = "0.1.1"
 description = ""
 authors = ["Lee Braiden <leebraid@gmail.com>"]
