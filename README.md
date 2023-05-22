@@ -45,7 +45,7 @@ Run `kobold-assistant list-mics` to list available microphones that `kobold-assi
 
 I'll try tidy this up the dependency situation in future, using docker or something, so you don't have to worry about dependencies, and it "just works", but nvidia make you sign up to their website to get a few of them right now, so there's probably no easy answer at the moment. Sadly, I don't think this code will get away from any nvidia dependencies for a while.
 
-- Download the `*.whl` file from the latest release on github (http://github.com/lee-b/kobold\_assistant/)
+- Download the `*.whl` file from the latest release on github (http://github.com/lee-b/kobold_assistant/)
 - Run `pip install *.whl`.
 
 
