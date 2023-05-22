@@ -96,7 +96,7 @@ This is a bug in the TTS library, if you press Ctrl-C while it's download a mode
 
 ### 'Detected speech-to-text hallucination: ...'
 
-**CHECK the MICROPHONE_DEVICE_INDEX setting.  See Running, above.**
+**CHECK the MICROPHONE_DEVICE_INDEX setting. See Configuration, above.**
 
 This happens when the whisper text-to-speech model hallucinates, and kobold-assistant notices. Essentially, it just means that the text-to-speech model misheard you, or only heard noise and made a guess. Check the MICROPHONE\_DEVICE\_INDEX setting (or it may be listening for audio on a device that's not producing any audio!).  Check your microphone settings (such as the microphone volume and noise cancellation options), and generally ensure that your microphone works: that it's not too quiet or too loud, and so on.  OR, just try again: kobold-assistant will try to recover from this and just go on as if you didn't say anything yet.  If this happens every time, though, you have a configuration issue.
 
