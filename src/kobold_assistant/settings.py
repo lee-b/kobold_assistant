@@ -10,10 +10,13 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
+default_settings_path = Path(__file__).parent / 'default_settings.json'
+user_home_settings_path = Path("~").expanduser() / '.config' / 'kobold_assistant' / 'settings.json'
+
 settings_paths = [
-    Path(__file__).parent / 'default_settings.json',
+    default_settings_path,
     Path("/") / "etc" / 'kobold_assistant' / 'settings.json',
-    Path("~").expanduser() / '.config' / 'kobold_assistant' / 'settings.json',
+    user_home_settings_path,
     Path('settings.json'),
 ]
 
