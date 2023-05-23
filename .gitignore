@@ -5,6 +5,4 @@ __pycache__
 .envrc
 settings.yml
 context.txt
-settings.py
-voicebot_settings_override.py
 error.log*

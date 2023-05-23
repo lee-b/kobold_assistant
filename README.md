@@ -51,42 +51,36 @@ I'll try tidy this up the dependency situation in future, using docker or someth
 
 ## Configuration
 
-For now, this is hacky. I'll improve it soon.
+To customize the configuration, run `kobold_assistant default-config-path`, and copy the the file at that path to `~/.config/kobold_assistant/settings.json`, then edit it.  You can also place config in `/etc/kobold_assistant/settings.json`.
 
-- Install per the instructions above
-- run `python -c 'import kobold_assistant.default_settings as ds; print(ds.__file__)'`. Create a new `custom_settings.py` file in the same folder as `default_settings.py`, as follows:
+The most important settings are as follows:
 
-```
-from .default_settings import *
+### `GENERATE_URL = "http://localhost:5000/api/v1/generate"`
 
-SOME_SETTING = new_value
-```
+The KoboldAI API server endpoint, for generating text from a prompt using a large language model.  Check the documentation and terminal output of KoboldAI-Client,
+KoboldCPP, Text-Generation-WebUI, or whichever other compatible server you're using.
 
-where `SOME_SETTING` is one of the variables already present in `default_settings.py`
-and `new_value` is some new value that you want to use instead.
+### `MICROPHONE_DEVICE_INDEX: null`
 
-**NOTE:** Some values depend on others. For now, you need to copy any dependent variables that come after the variable that you're modifying into your file, so that they use the custom setting. Again, this is hacky, and I'll clean it up soon.
+The device number of the microphone to listen for instructions on.
+Run `kobold-assistant list-mics` for a list.  null means choose the default.
 
-The most important settings are:
+NOTE: The default (null) "should" auto-detect this for you; see the
+      For now, see the SpeechRecognition library docs for details on exactly
+      how this works.
 
-```
-# The device number of the microphone to listen for instructions on.
-# Run `kobold-assistant list-mics` for a list.
-# NOTE: the default should auto-detect this for you.
-MICROPHONE_DEVICE_INDEX = None
+### `AUTO_CALIBRATE_MIC: true`
 
-# Automatically determine the microphone volume based
-# on ambient noise levels
-AUTO_CALIBRATE_MIC = True
+Automatically determine the microphone volume based
+on ambient noise levels
 
-# Energy level (mic volume) to use when not auto-calibrating (per above).
-# Range is from 0 to 4000, with 1500 being reasonable for a
-# well-calibrated mic.
-STT_ENERGY_THRESHOLD = 1500
+### `STT_ENERGY_THRESHOLD: 1500`
 
-# The server KoboldAI API endpoint for generating text from a prompt using a large language model
-GENERATE_URL = "http://localhost:5000/api/v1/generate"
-```
+Energy level (mic volume) to use when not auto-calibrating (per above).
+Range is from 0 to 4000, with 1500 being reasonable for a
+well-calibrated mic.
+
+
 
 ## Building (for developers)
 
@@ -130,3 +124,4 @@ Pull requests welcome - don't be shy :)
 ## Author(s)
 
 - Lee Braiden <leebraid@gmail.com>
+

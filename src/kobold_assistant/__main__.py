@@ -22,23 +22,11 @@ from pydub import AudioSegment
 from pydub.playback import play as play_audio_segment
 
 
-from . import default_settings
+from .settings import build_settings
 
 
-CUSTOM_CONFIG_PATH = Path(default_settings.__file__).parent / "custom_settings.py"
-
-
-try:
-    from . import custom_settings as settings
-except ImportError:
-    settings = default_settings
-
-
-def text_to_phonemes(text: str) -> str:
-    # passthrough, since we (try to) get around this by prompting
-    # the AI to spell-out any abbreviations instead, for now.
-    # (but it doesn't work with the current prompt)
-    return text
+# TODO: make this non-global
+settings = None
 
 
 def get_microphone_device_id(Microphone) -> int:
@@ -109,14 +97,12 @@ def say(tts_engine, text, cache=False, warmup_only=False):
     if text in temp_audio_files:
         audio = temp_audio_files[text]
     else:
-        phonemes = text_to_phonemes(text)
-
         audio_file = NamedTemporaryFile()
 
         params = {
             "emotion": "Happy",
             "speed": 1.8,
-            "text": phonemes,
+            "text": text,
             "file_path": audio_file.name,
         }
 
@@ -337,7 +323,12 @@ def serve():
 
 
 def main():
-    print(f"Loaded settings from {settings.__file__}")
+    global settings # horrible hack for now
+
+    settings = build_settings()
+    if settings is None:
+        print("ERROR: couldn't load settings! Exiting.", file=sys.stderr)
+        return 1
 
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', choices=('serve', 'list-mics',))
@@ -356,4 +347,11 @@ def main():
         mic_list = stt.Microphone.list_microphone_names()
         for k, v in enumerate(mic_list):
             print(f"Device {k}: {v}")
+    
+        print("I think the working microphones are:")
+        working_mics = stt.Microphone.list_working_microphones()
+
+        for k, v in working_mics.items():
+            print(f"Device {k}: {v}")
+
 
