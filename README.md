@@ -1,7 +1,6 @@
 # Kobold-Assistant
 
-A fully offline voice assistant interface to KoboldAI's large language model API. Can
-probably also work online with the KoboldAI horde and online speech-to-text and text-to-speech models, if you really want it to.
+A fully offline voice assistant interface to KoboldAI's large language model API. Can probably also work online with the KoboldAI horde and online speech-to-text and text-to-speech models, if you really want it to.
 
 It's reasonably good; at least as good as Amazon Alexa, if not better. It uses the latest coqui "jenny" text to speech model, and openAI's whisper speech recognition, and additionally the model is prompted to know that it's getting text through speech recognition, so is cautious and clarifies if it's not sure what was heard. Unfortunately it has been known to go meta and suggest that you to adjust your microphone! ;)
 
@@ -13,7 +12,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 ## Running
 
 - Install as instructed below
-- Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5000/api/v1/generate` (see Configuration, below, if you need to change this URL). See KoboldAI below, for a quickstart guide.
+- Make sure `KoboldAI` (preferably) (a.k.a, `KoboldAI-Client`), `KoboldCPP` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5000/api/v1/generate` (see Configuration, below, if you need to change this URL). See KoboldAI below, for a quickstart guide.
 - Run one or more of the commands below.  If you get any errors about missing libraries, follow the instructions about that under Installation, below.
 
 ### `serve`
@@ -32,7 +31,7 @@ Run `kobold-assistant list-mics` to list available microphones that `kobold-assi
 	- portaudio development libraries
 	- ffmpeg
 - KoboldAI, KoboldCPP, or text-generation-webui running locally
-  - For now, the only model known to work with this is Alpacino-30b-ggml. Any Alpaca model will PROBABLY work. I'll add abstractions so that more models work, soon.
+  - For now, the only model known to work with this is stable-vicuna-13B-GPTQ. Any Alpaca-like or vicuna model will PROBABLY work. I'll add abstractions so that more models work, soon. Feel free to submit a PR with known-good models, or changes for multiple/other model support.
 - Python >=3.7, <3.11
 - Ubuntu/Debian
 
@@ -57,8 +56,7 @@ The most important settings are as follows:
 
 ### `GENERATE_URL = "http://localhost:5000/api/v1/generate"`
 
-The KoboldAI API server endpoint, for generating text from a prompt using a large language model.  Check the documentation and terminal output of KoboldAI-Client,
-KoboldCPP, Text-Generation-WebUI, or whichever other compatible server you're using.
+The KoboldAI API server endpoint, for generating text from a prompt using a large language model.  Check the documentation and terminal output of KoboldAI-Client, KoboldCPP, Text-Generation-WebUI, or whichever other compatible server you're using.
 
 ### `MICROPHONE_DEVICE_INDEX: null`
 
@@ -75,13 +73,12 @@ Automatically determine the microphone volume based on ambient noise levels.
 
 ### `STT_ENERGY_THRESHOLD: 1500`
 
-Energy level (mic volume) to use when NOT auto-calibrating (per above).
-Range is from 0 to 4000, with 1500 being reasonable for a
+Energy level (mic volume) to use when NOT auto-calibrating (per above). Range is from 0 to 4000, with 1500 being reasonable for a
 well-calibrated mic.
 
 ## KoboldAI
 
-Really, you should check the KoboldAI instructions, but as a quick guide to getting it running on Debian, Ubuntu, Linux Mint, Pop! OS, or simialr Debian-based Linux distros, for the purposes of running this, here's how to do it, at *present*. No guarantees that this will continue to work.
+Really, you should check the KoboldAI instructions, but as a quick guide to getting it running on Debian, Ubuntu, Linux Mint, Pop! OS, or similar Debian-based Linux distros, for the purposes of running this, here's how to do it, at *present*. No guarantees that this will continue to work.
 
 ROUGH requirements (check the KoboldAI docs for better requirements):
     - nvidia card with CUDA and at least 12GB of Video RAM (VRAM)
@@ -163,4 +160,3 @@ Pull requests welcome - don't be shy :)
 ## Author(s)
 
 - Lee Braiden <leebraid@gmail.com>
-
