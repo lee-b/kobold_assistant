@@ -13,7 +13,7 @@ You can tweak the assistant name, speech-to-text model, text-to-speech model, pr
 ## Running
 
 - Install as instructed below
-- Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5000/api/v1/generate` (see Configuration, below, if you need to change this URL).
+- Make sure `koboldcpp` (preferably), `koboldai` or `text-generation-webui` are running, with a suitable LLM model loaded, and serving a KoboldAI compatible API at `http://localhost:5000/api/v1/generate` (see Configuration, below, if you need to change this URL). See KoboldAI below, for a quickstart guide.
 - Run one or more of the commands below.  If you get any errors about missing libraries, follow the instructions about that under Installation, below.
 
 ### `serve`
@@ -71,18 +71,52 @@ NOTE: The default (null) "should" auto-detect this for you; see the
 
 ### `AUTO_CALIBRATE_MIC: true`
 
-Automatically determine the microphone volume based
-on ambient noise levels
+Automatically determine the microphone volume based on ambient noise levels.
 
 ### `STT_ENERGY_THRESHOLD: 1500`
 
-Energy level (mic volume) to use when not auto-calibrating (per above).
+Energy level (mic volume) to use when NOT auto-calibrating (per above).
 Range is from 0 to 4000, with 1500 being reasonable for a
 well-calibrated mic.
 
+## KoboldAI
+
+Really, you should check the KoboldAI instructions, but as a quick guide to getting it running on Debian, Ubuntu, Linux Mint, Pop! OS, or simialr Debian-based Linux distros, for the purposes of running this, here's how to do it, at *present*. No guarantees that this will continue to work.
+
+ROUGH requirements (check the KoboldAI docs for better requirements):
+    - nvidia card with CUDA and at least 12GB of Video RAM (VRAM)
+    - A recent Debian-based distro
+    - A GUI desktop session (this approach needs a browser)
+
+NOTE: this is NOT the official KoboldAI version, but a development branch that supports 4bit quantized models. In future, it should be possible to use the official version instead, after this feature has been merged into it.
+
+```
+sudo apt-get update && sudo apt-get install -y nvidia-cuda-toolkit git git-lfs
+git clone https://github.com/0cc4m/KoboldAI -b latestgptq --recurse-submodules
+cd KoboldAI
+./install_requirements.sh
+cd KoboldAI/models
+git clone https://huggingface.co/TheBloke/stable-vicuna-13B-GPTQ
+cd stable-vicuna-13B-GPTQ
+ln -s stable-vicuna-13B-GPTQ-4bit.compat.no-act-order.safetensors 4bit-128g.safetensors
+cd ../..
+./play.sh
+```
+
+- The final step, running `./play.sh`, should launch your web browser.
+- In the browser, click `AI`
+- Click `Load a model from its directory`
+- Select the model that you cloned earlier, `stable-vicuna-13B-GPTQ`
+- After selecting, some sliders appear at the bottom.  Move the `GPU 0` slider all the way to the right.  NOTE: if this later fails to load, it's probably this slider that you need to change.  Read the KoboldAI docs!
+- Click `Load`.
+- If this loads load successfully, the Loading message should disappear within a minute or two at most.
+- Now, in a separate terminal, run `kobold-assistant serve`, per the docs above.
 
 
 ## Building (for developers)
+
+To just use it, don't do this. See the installation instructions above! But, if you want
+to hack on this code:
 
 - Install poetry per instructions
 - Install and make default (via pyenv or whatever) python 3.9.16
@@ -98,7 +132,12 @@ Now edit the files and `poetry run kobold-assistant serve` to test.
 
 ## Troubleshooting
 
-#### 'ValueError:  [!] Model file not found in the output path'
+### 'Hmm. I don't know what to say. Could you rephrase that?'
+
+This is happens frequently right now, but is really just filler for the AI not responding
+with anything. Try rephrasing as instructed. Alternatively, you could avoid repeating yourself with an encouraging instruction like "Well, try your best."
+
+### 'ValueError:  [!] Model file not found in the output path'
 
 This is a bug in the TTS library, if you press Ctrl-C while it's download a model because its downloads aren't atomic (it leaves half a download behind, then gets confused). To work around this, run `rm -rf ~/.local/share/TTS`, and it will download anew.
 
