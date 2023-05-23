@@ -6,9 +6,11 @@ authors = ["Lee Braiden <leebraid@gmail.com>"]
 license = "AGPL v3"
 readme = "README.md"
 packages = [
-	{ include="kobold_assistant", from="src" },
+    { include="kobold_assistant", from="src" },
 ]
-
+include = [
+    { path="src/kobold_assistant/default_settings.json" },
+]
 
 [tool.poetry.scripts]
 kobold-assistant = "kobold_assistant.__main__:main"
