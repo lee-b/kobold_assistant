@@ -29,13 +29,6 @@ from .settings import build_settings
 settings = None
 
 
-def text_to_phonemes(text: str) -> str:
-    # passthrough, since we (try to) get around this by prompting
-    # the AI to spell-out any abbreviations instead, for now.
-    # (but it doesn't work with the current prompt)
-    return text
-
-
 def get_microphone_device_id(Microphone) -> int:
     """
     Returns the users chosen settings.MICROPHONE_DEVICE_INDEX,
@@ -104,14 +97,12 @@ def say(tts_engine, text, cache=False, warmup_only=False):
     if text in temp_audio_files:
         audio = temp_audio_files[text]
     else:
-        phonemes = text_to_phonemes(text)
-
         audio_file = NamedTemporaryFile()
 
         params = {
             "emotion": "Happy",
             "speed": 1.8,
-            "text": phonemes,
+            "text": text,
             "file_path": audio_file.name,
         }
 
