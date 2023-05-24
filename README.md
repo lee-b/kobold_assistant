@@ -80,6 +80,10 @@ well-calibrated mic.
 
 Really, you should check the KoboldAI instructions, but as a quick guide to getting it running on Debian, Ubuntu, Linux Mint, Pop! OS, or similar Debian-based Linux distros, for the purposes of running this, here's how to do it, at *present*. No guarantees that this will continue to work.
 
+### Known-good models
+
+### ROUGH requirements
+
 ROUGH requirements (check the KoboldAI docs for better requirements):
     - nvidia card with CUDA and at least 12GB of Video RAM (VRAM)
     - A recent Debian-based distro
@@ -87,18 +91,24 @@ ROUGH requirements (check the KoboldAI docs for better requirements):
 
 NOTE: this is NOT the official KoboldAI version, but a development branch that supports 4bit quantized models. In future, it should be possible to use the official version instead, after this feature has been merged into it.
 
+### Debian/Ubuntu/Mint/Pop! OS Installation
+
+This example is for the lightest model to run, on machines with limited resources.  See **Known-good Models** below, for other options, and adjust accordingly to your needs.
+
 ```
 sudo apt-get update && sudo apt-get install -y nvidia-cuda-toolkit git git-lfs
 git clone https://github.com/0cc4m/KoboldAI -b latestgptq --recurse-submodules
 cd KoboldAI
 ./install_requirements.sh
 cd KoboldAI/models
-git clone https://huggingface.co/TheBloke/stable-vicuna-13B-GPTQ
-cd stable-vicuna-13B-GPTQ
-ln -s stable-vicuna-13B-GPTQ-4bit.compat.no-act-order.safetensors 4bit-128g.safetensors
+git clone https://huggingface.co/TheBloke/WizardLM-7B-uncensored-GPTQ TheBloke_WizardLM-7B-uncensored-GPTQ
+cd TheBloke_WizardLM-7B-uncensored-GPTQ
+ln -s WizardLM-7B-uncensored-GPTQ-4bit-128g.compat.no-act-order.safetensors 4bit-128g.safetensors
 cd ../..
 ./play.sh
 ```
+
+### Running
 
 - The final step, running `./play.sh`, should launch your web browser.
 - In the browser, click `AI`
@@ -108,6 +118,34 @@ cd ../..
 - Click `Load`.
 - If this loads load successfully, the Loading message should disappear within a minute or two at most.
 - Now, in a separate terminal, run `kobold-assistant serve`, per the docs above.
+stable-vicuna-13B-GPTQ-4bit.compat.no-act-order.safetensors 4bit-128g.safetensors
+
+
+### Known-good Models
+
+Any of these models will work.  They're listed with the easiest model to run first, and the best (but more demanding) models last.
+
+- `TheBloke_WizardLM-7B-uncensored-GPTQ`
+  - Should run within 8GB
+  - Obviously not as good as the more demanding models, but surprisingly similar to Alexa and other commercial offerings
+  - Run `ln -s WizardLM-7B-uncensored-GPTQ-4bit-128g.compat.no-act-order.safetensors 4bit-128g.safetensors` in the model directory before attempting to load it.
+
+- `TheBloke/stable-vicuna-13b`
+  - This should run in about 12GB
+  - Seems about equivalent to Alexa
+  - Run `ln -s stable-vicuna-13B-GPTQ-4bit.compat.no-act-order.safetensors 4bit-128g.safetensors` in the model directory before attempting to load it.
+
+- `MetalX_GPT4-X-Alpasta-30b-4bit`
+  - This requires at least 24GB
+  - It's a capable, general model, which seems better than Alexa
+  - Run `ln -s gpt4-x-alpasta-30b-128g-4bit.safetensors 4bit-128g.safetensors` in the model directory before attempting to load it.
+
+- `TheBloke/WizardLM-30B-Uncensored-GPTQ`
+  - This requires at least 24GB
+  - It's a capable, general model, which seems better than Alexa
+  - Run `ln -s WizardLM-30B-Uncensored-GPTQ-4bit.act-order.safetensors 4bit.safetensors` in the model directory before attempting to load it.
+
+- Any other 4bit, 128b safetensors llama-based model from huggingface should also work, using the above approaches.
 
 
 ## Building (for developers)
