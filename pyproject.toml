@@ -25,6 +25,7 @@ openai-whisper = "^20230314"
 urllib3 = "<2"
 torchaudio = "^2.0.2"
 tts = "^0.14.0"
+gruut = "^2.2.3"
 
 
 [tool.poetry.group.dev.dependencies]

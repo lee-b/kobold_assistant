@@ -2,7 +2,9 @@ import argparse
 import importlib.util
 import io
 import json
+import logging
 import os
+import re
 import sys
 import time
 import urllib
@@ -13,6 +15,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import List, Optional, Tuple
 
+import gruut
 import pyaudio
 import speech_recognition as stt
 import torch
@@ -23,6 +26,9 @@ from pydub.playback import play as play_audio_segment
 
 
 from .settings import build_settings
+
+
+logger = logging.getLogger()
 
 
 # TODO: make this non-global
@@ -80,6 +86,25 @@ def prompt_ai(prompt: str) -> str:
 temp_audio_files = {}
 
 
+def expand_text(text_match) -> str:
+    text = text_match.group(0)
+    replacement = ' '.join([ s.text_spoken for s in gruut.sentences(text) ])
+    return replacement
+
+
+def expand_to_pronounced_word_form(text):
+    """Detect mathematical formulae and abbreviations, and replace them"""
+
+    component = r"([0-9]|[A-Za-z]+)"
+    term = component + r"\." + component
+    abbreviation = r"([A-Z](\.|)){2,}"
+    expr_pattern = r"(" + term + r"|" + abbreviation + r"|" + r"\=" + r")"
+
+    expanded_text = re.sub(expr_pattern, expand_text, text)
+
+    return expanded_text
+
+
 def say(tts_engine, text, cache=False, warmup_only=False):
     # horrible global hack for now; will get fixed
     global temp_audio_files
@@ -94,6 +119,8 @@ def say(tts_engine, text, cache=False, warmup_only=False):
     if tts_engine.languages is not None and len(tts_engine.languages) > 0:
         params['language'] = tts_engine.languages[0]
 
+    expanded_text = expand_to_pronounced_word_form(text)
+
     if text in temp_audio_files:
         audio = temp_audio_files[text]
     else:
@@ -102,7 +129,7 @@ def say(tts_engine, text, cache=False, warmup_only=False):
         params = {
             "emotion": "Happy",
             "speed": 1.8,
-            "text": text,
+            "text": expanded_text,
             "file_path": audio_file.name,
         }
 
@@ -130,7 +157,10 @@ def say(tts_engine, text, cache=False, warmup_only=False):
 def strip_stop_words(response: str) -> Optional[str]:
     for stop_word in settings.AI_MODEL_STOP_WORDS:
         if stop_word in response:
+            logger.debug("stop word %r FOUND in %r", stop_word, response)
             response = response.split(stop_word)[0]
+        else:
+            logger.debug("stop word %r NOT found in %r", stop_word, response)
 
     stripped_response = response.strip()
     if stripped_response == "":
@@ -154,9 +184,10 @@ def warm_up_stt_engine(stt_engine, source):
         return False
 
     audio = stt_engine.listen(source, 0)
-    stt_engine.recognize_whisper(audio, model=settings.WHISPER_MODEL)
+    stt_engine.recognize_whisper(audio, model=settings.WHISPER_MODEL, language=settings.LANGUAGE.lower())
 
     return True
+
 
 def warm_up_tts_engine(tts_engine):
     # warm up / initialize the text-to-speech engine
@@ -191,7 +222,11 @@ def get_assistant_response(tts_engine, context: str, chat_log: List[str], assist
             else:
                 break
 
-        stripped_response_text = strip_stop_words(response_text)
+        remapped_text = response_text
+        for remap_key, remap_val in settings.AI_TEXT_TO_SPEECH_REMAPPINGS.items():
+            remapped_text = remapped_text.replace(remap_key, remap_val)
+
+        stripped_response_text = strip_stop_words(remapped_text)
 
         # TODO: Handle bad responses by looping with varying
         #       seeds/temperatures until we get a proper response.
@@ -325,6 +360,8 @@ def serve():
 def main():
     global settings # horrible hack for now
 
+    logging.basicConfig(level=logging.DEBUG)
+
     settings = build_settings()
     if settings is None:
         print("ERROR: couldn't load settings! Exiting.", file=sys.stderr)
@@ -353,5 +390,4 @@ def main():
 
         for k, v in working_mics.items():
             print(f"Device {k}: {v}")
-
 

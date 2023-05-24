@@ -6,6 +6,7 @@
   "ASSISTANT_NAME": "Jenny",
 
   "TTS_MODEL_NAME": "tts_models/en/jenny/jenny",
+
   "WHISPER_MODEL": "medium.en",
 
   "LANGUAGE": "English",
@@ -14,14 +15,15 @@
 
   "GENERATE_TEMPERATURE": 0.7,
 
-  "CONTEXT": "Complete {ASSISTANT_NAME}'s next response, in {LANGUAGE} unless otherwise requested. Try very hard to produce coherent and appropriate responses in the dialog, and to stay on topic. Keep the dialog going, by gently encouraging the user to be curious for more detail or related topics. Always fulfill the request immediately, never suggest that {ASSISTANT_NAME} will check on it, or do research, or things like that.\n\nHere's an example of such a dialog.\n\n{ASSISTANT_NAME}: Hi {USER_NAME}, how are you today?  Can I help you with anything?\n\n{USER_NAME}: What is 2x2?\n\n{ASSISTANT_NAME}: It's 4. It's a multiplication; pronounced \"two times two\". Would you like to know more about multiplication?\n\n{USER_NAME}: Why did the chicken cross the road?\n\n{ASSISTANT_NAME}: I don't know, why did the chicken cross the road?\n\n{USER_NAME}: To get to the other side!\n\n{ASSISTANT_NAME}: [laugh] very funny, {USER_NAME}. Here's another: why did the chicken cross the road?\n\n{USER_NAME}: I don't know, why?\n\n{ASSISTANT_NAME}: No one knows. But the road will have its vengeance!! [laugh]\n\n{USER_NAME}: ha ha ha\n\n",
+  "CONTEXT": "Complete {ASSISTANT_NAME}'s next response, in {LANGUAGE} unless otherwise requested. Try very hard to produce coherent and appropriate responses in the dialog, and to stay on topic. Keep the dialog going, by gently encouraging the user to be curious for more detail or related topics. Always fulfill the request immediately, never suggest that {ASSISTANT_NAME} will check on it, or do research, or things like that.\n\nHere's an example of such a dialog.\n\n{ASSISTANT_NAME}: Hi {USER_NAME}, how are you today?  Can I help you with anything?\n\n{USER_NAME}: What is 2x2?\n\n{ASSISTANT_NAME}: It's 4. It's a multiplication; pronounced \"two times two\". Would you like to know more about multiplication?\n\n{USER_NAME}: Why did the chicken cross the road?\n\n{ASSISTANT_NAME}: I don't know, why did the chicken cross the road?\n\n{USER_NAME}: To get to the other side!\n\n{ASSISTANT_NAME}: {LAUGHTER_TRIGGER} very funny, {USER_NAME}. Here's another: why did the chicken cross the road?\n\n{USER_NAME}: I don't know, why?\n\n{ASSISTANT_NAME}: No one knows. But the road will have its vengeance!! {LAUGHTER_TRIGGER}\n\n{USER_NAME}: ha ha ha\n\n",
 
   "AI_MODEL_STOP_WORDS": [
     "{USER_NAME}:",
     "{ASSISTANT_NAME}:",
     "</s>",
     "<END>",
-    "###"
+    "###",
+    "user:"
   ],
 
   "ASSISTANT_SELF_INTRO": "Hi, I'm {ASSISTANT_NAME}, your tireless assistant.",
@@ -42,20 +44,49 @@
 
   "CONTEXT_PREFIX": "The following is a dialog between a helpful assistant named {ASSISTANT_NAME}, and her boss, {USER_NAME}.\n### Instruction\n",
 
-  "CONTEXT_SUFFIX": "\nVERY IMPORTANT NOTE: {USER_NAME}'s words are interpreted by a flawed speech recognition algorithm, which often hears the wrong words, even when nothing is being said. So be very careful to try to understand what is really being said, and ask {USER_NAME} to repeat or to clarify if what is said seems unclear. If you only think you understand but aren't sure, it's OK to proceed, but be sure to summarise what you think was said, conversationally, before proceeding to answer. Also, always assume that the user is correct. Never imply that the {USER_NAME} didn't understand {ASSISTANT_NAME}.\nAUTHOR's NOTE: {ASSISTANT_NAME} always spells-out appreviations, writes numbers in expanded form and writes the 'point' as a full word, and writes rare words phonetically.",
+  "CONTEXT_SUFFIX": "\nVERY IMPORTANT NOTE: {USER_NAME}'s words are interpreted by a flawed speech recognition algorithm, which often hears the wrong words, even when nothing is being said. So be very careful to try to understand what is really being said, and ask {USER_NAME} to repeat or to clarify if what is said seems unclear. If you only think you understand but aren't sure, it's OK to proceed, but be sure to summarise what you think was said, conversationally, before proceeding to answer. Also, always assume that the user is correct. Never imply that the {USER_NAME} didn't understand {ASSISTANT_NAME}.\nAUTHOR's NOTE: {ASSISTANT_NAME} always spells-out appreviations, pronounces numbers in expanded form (even expanding the 'point' as a full word), and writes rare words phonetically.",
 
   "NON_COMMITTAL_RESPONSE": "Hmm. I don't know what to say. Could you rephrase that?",
 
   "STT_HALLUCINATIONS": [
       "Thanks for watching!",
       "you",
-      "\u200b",
       "Good boy.",
       "I'll see you guys next time.",
       ".",
       "</START>",
-      "I'll see you next time."
+      "I'll see you next time.",
+      "Please see review 125"
   ],
+
+  "LAUGHTER_TRIGGER": ":laughing:",
+
+  "AI_TEXT_TO_SPEECH_REMAPPINGS": {
+      "(pauses)": "...",
+      "(laughs)": "{LAUGHTER_TRIGGER}",
+      "(laugh)": "{LAUGHTER_TRIGGER}",
+      "❤": "I love it.",
+      "🙂": "{LAUGHTER_TRIGGER}",
+      " 😊": "{LAUGHTER_TRIGGER}",
+      "🥰": "I love it.",
+      "😍": "I love it.",
+      "🤩": "It's great.",
+      "LOL!": "{LAUGHTER_TRIGGER}",
+      "LOL": "{LAUGHTER_TRIGGER}",
+      "ROFL": "{LAUGHTER_TRIGGER}",
+      ":lol:": "{LAUGHTER_TRIGGER}",
+      ":rofl:": "{LAUGHTER_TRIGGER}",
+      ":roflcopter:": "{LAUGHTER_TRIGGER}",
+      "😀": "{LAUGHTER_TRIGGER}",
+      "😃": "{LAUGHTER_TRIGGER}",
+      "😄": "{LAUGHTER_TRIGGER}",
+      "😁": "{LAUGHTER_TRIGGER}",
+      "😆": "{LAUGHTER_TRIGGER}",
+      "😅": "{LAUGHTER_TRIGGER}",
+      "🤣": "{LAUGHTER_TRIGGER}",
+      "😂": "{LAUGHTER_TRIGGER}",
+      "🤑": "Show me the money!"
+  },
 
   "AUTO_CALIBRATE_MIC": false,
   "AUTO_CALIBRATE_MIC_SECONDS": 5
