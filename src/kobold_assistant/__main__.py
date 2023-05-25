@@ -55,6 +55,8 @@ def prompt_ai(prompt: str) -> str:
     post_data = {
         'prompt': prompt,
         'temperature': settings.GENERATE_TEMPERATURE,
+#        'max_length': settings.MAX_TOKENS,
+#        'max_context_length': settings.MAX_CONTEXT_LENGTH,
     }
 
     post_json = json.dumps(post_data)
@@ -155,7 +157,7 @@ def say(tts_engine, text, cache=False, warmup_only=False):
 
 
 def strip_stop_words(response: str) -> Optional[str]:
-    for stop_word in settings.AI_MODEL_STOP_WORDS:
+    for stop_word in settings.AI_MODEL_STOP_WORDS + [r' \u200b']:
         if stop_word in response:
             logger.debug("stop word %r FOUND in %r", stop_word, response)
             response = response.split(stop_word)[0]
@@ -202,8 +204,30 @@ def warm_up_tts_engine(tts_engine):
         say(tts_engine, common_response_to_cache, cache=True, warmup_only=True)
 
 
-def get_assistant_response(tts_engine, context: str, chat_log: List[str], assistant_name: str) -> Tuple[str, bool]:
-    conversation_so_far = "\n".join((context, *chat_log, f'{assistant_name}: '))
+def build_prompt_text(assistant_name: str, assistant_desc: str, chat_log: List[str], max_context_length: int) -> str:
+    context = "" + assistant_desc
+    context_len = len(assistant_desc) + len(assistant_name) + len("\n\n:")
+
+    limited_chat_log = []
+    chat_log_pos = len(chat_log) - 1
+    while context_len <= max_context_length:
+        if chat_log_pos < 0:
+            break
+
+        remaining_space = max_context_length - context_len
+
+        next_line = chat_log[chat_log_pos][-remaining_space:]
+        chat_log_pos -= 1
+
+        limited_chat_log.insert(0, next_line)
+        context_len += remaining_space
+
+    prompt = '\n'.join((context, *limited_chat_log, f'{assistant_name}: '))
+    return prompt
+
+
+def get_assistant_response(tts_engine, context: str, chat_log: List[str], assistant_name: str, assistant_desc: str) -> Tuple[str, bool]:
+    conversation_so_far = build_prompt_text(assistant_name, assistant_desc, chat_log, settings.MAX_CONTEXT_LENGTH)
 
     stripped_response_text = None
     while not stripped_response_text:
@@ -267,7 +291,7 @@ def get_user_input(tts_engine, stt_engine, source) -> Optional[str]:
                 silent_periods_count += 1
                 continue
 
-            for stt_hallucination in settings.STT_HALLUCINATIONS:
+            for stt_hallucination in [ settings.STT_HALLUCINATIONS ]:
                 if stripped_user_response == stt_hallucination:
                     # debugging
                     print(f"Detected speech-to-text hallucination: {stripped_user_response!r}")
@@ -347,7 +371,7 @@ def serve():
             user_response_log_line = f'{settings.USER_NAME}: {user_response}'
             chat_log.append(user_response_log_line)
 
-            assistant_response, cached_response = get_assistant_response(tts_engine, context, chat_log, settings.ASSISTANT_NAME)
+            assistant_response, cached_response = get_assistant_response(tts_engine, context, chat_log, settings.ASSISTANT_NAME, settings.ASSISTANT_DESC)
             log_line = f'{settings.ASSISTANT_NAME}: {assistant_response}'
             print(log_line)
             chat_log.append(log_line)
