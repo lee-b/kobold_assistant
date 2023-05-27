@@ -23,6 +23,7 @@ etc. https://discord.com/channels/849937185893384223/1110256272403599481
 
 - Run `kobold-assistant serve` after installing.
 - Give it a while (at least a few minutes) to start up, especially the first time that you run it, as it downloads a few GB of AI models to do the text-to-speech and speech-to-text, and does some time-consuming generation work at startup, to save time later.  It runs much more comfortably once it gets to the main conversational loop.
+- While running, the system responds to special control commands.  See Control Commands, below.
 
 ### `list-mics`
 
@@ -38,6 +39,18 @@ Run `kobold-assistant list-mics` to list available microphones that `kobold-assi
   - For now, the only model known to work with this is stable-vicuna-13B-GPTQ. Any Alpaca-like or vicuna model will PROBABLY work. I'll add abstractions so that more models work, soon. Feel free to submit a PR with known-good models, or changes for multiple/other model support.
 - Python >=3.7, <3.11
 - Ubuntu/Debian
+
+### Control Commands
+
+While running, there are two special commands that kobold-assistant responds to:
+
+#### `settings.SLEEP_COMMAND` (default: 'Sleep Jenny')
+
+This tells the assistant to go to sleep (to stop listening) until a wake command is given (see below).
+
+#### `settings.WAKE_COMMAND` (default: 'Wake up Jenny')
+
+This tells the assistant to start listening again, after it has been told to go to sleep (see above).
 
 
 ## Installation

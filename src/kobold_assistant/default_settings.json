@@ -30,6 +30,12 @@
     "user:"
   ],
 
+  "GOING_TO_SLEEP": "Goodnight, {USER_NAME}",
+  "WAKING_UP": "OK, OK, I'm awake. Jeez.",
+
+  "SLEEP_COMMAND": "sleep {ASSISTANT_NAME}",
+  "WAKE_COMMAND": "wake up {ASSISTANT_NAME}",
+
   "ASSISTANT_SELF_INTRO": "Hi, I'm {ASSISTANT_NAME}, your tireless assistant.",
   "ASSISTANT_PROMPT_TO_USER": "Can I help with anything?",
   "FULL_ASSISTANT_GREETING": "{ASSISTANT_SELF_INTRO} {ASSISTANT_PROMPT_TO_USER}",

@@ -196,6 +196,8 @@ def warm_up_tts_engine(tts_engine):
     common_responses_to_cache = [
         settings.SILENT_PERIOD_PROMPT,
         settings.NON_COMMITTAL_RESPONSE,
+        settings.GOING_TO_SLEEP,
+        settings.WAKING_UP,
     ]
     if settings.SLOW_AI_RESPONSES:
         common_responses_to_cache.append(settings.THINKING)
@@ -224,6 +226,9 @@ def build_prompt_text(assistant_name: str, assistant_desc: str, chat_log: List[s
 
     prompt = '\n'.join((context, *limited_chat_log, f'{assistant_name}: '))
     return prompt
+
+def clean_ai_response(text: str) -> str:
+    return text.replace('\u200b', '')
 
 
 def get_assistant_response(tts_engine, context: str, chat_log: List[str], assistant_name: str, assistant_desc: str) -> Tuple[str, bool]:
@@ -322,7 +327,24 @@ def get_user_response(tts_engine, stt_engine, source):
     return user_input
 
 
+def clean_as_user_command(s: str) -> str:
+    """
+    Strip user input down to the bare bones words, so that we match direct commands from the user
+    as well as possible despite speech-to-text adding punctuation differently, etc.
+
+    In future, we should really ask the LLM if {settings.USER} is telling {settings.ASSISTANT_NAME}
+    to go to sleep, for example, but too much compute, for now.  Might need a smaller command
+    and control llm model for that, or hotwords in the speech to text model, or both.
+    """
+
+    minimal_command_chars = 'abcdefghijklmnopqrstuvwxyz ' # note the space at the end
+
+    return "".join((c for c in s.lower() if c in minimal_command_chars)).strip()
+
+
 def serve():
+    sleeping = False
+
     context = "\n".join((settings.CONTEXT_PREFIX, settings.CONTEXT, settings.CONTEXT_SUFFIX))
 
     tts_engine = TTS(settings.TTS_MODEL_NAME)
@@ -367,6 +389,21 @@ def serve():
             print(f"{settings.USER_NAME}: ", end="")
             user_response = get_user_response(tts_engine, stt_engine, source)
             print(user_response)
+
+            user_command = clean_as_user_command(user_response)
+            if user_command == settings.SLEEP_COMMAND.lower():
+                sleeping = True
+                say(tts_engine, settings.GOING_TO_SLEEP, cache=True)
+                continue
+
+            elif sleeping and user_command == settings.WAKE_COMMAND.lower():
+                sleeping = False
+                say(tts_engine, settings.WAKING_UP, cache=True)
+                continue
+
+            elif sleeping:
+                logging.warning("In sleep mode. Ignoring user input %r. Wake the assistant with %r", user_response, settings.WAKE_COMMAND)
+                continue
 
             user_response_log_line = f'{settings.USER_NAME}: {user_response}'
             chat_log.append(user_response_log_line)
