@@ -68,7 +68,8 @@ def prompt_ai(prompt: str, stop_words: List[str]) -> str:
     post_json = json.dumps(post_data)
     post_json_bytes = post_json.encode('utf8')
 
-    print(f"settings.GENERATE_URL is {settings.GENERATE_URL!r}")
+    logger.debug("Calling settings.GENERATE_URL %r with request %r", settings.GENERATE_URL, post_json)
+
     req = urllib.request.Request(settings.GENERATE_URL, method="POST")
     req.add_header('Content-Type', 'application/json; charset=utf-8')
 
@@ -80,11 +81,11 @@ def prompt_ai(prompt: str, stop_words: List[str]) -> str:
         try:
             return json_response['results'][0]['text']
         except (KeyError, IndexError) as e:
-            print("ERROR: KoboldAI API returned an unexpected response format!", file=sys.stderr)
+            logger.error("KoboldAI API returned an unexpected response format!")
             return None
 
     except urllib.error.URLError as e:
-        logger.error(f"ERROR: the KoboldAI API returned %r!", e)
+        logger.error(f"The KoboldAI API returned %r!", e)
 
     return None
 
@@ -147,10 +148,13 @@ def say(tts_engine, text, cache=False, warmup_only=False):
                 wav_audio = tts_engine.tts_to_file(**params)
                 tts_done = True
             except BaseException as e:
-                err_msg = f"WARNING: TTS model {settings.TTS_MODEL_NAME!r} threw error {e}. Retrying. If this keeps failing, override the TTS_MODEL_NAME setting, and/or file a bug if it's the default setting."
-                for out_fp in (sys.stderr, sys.stdout):
-                    # TODO: proper logging :D
-                    print(err_msg, file=out_fp)
+                logger.error(
+                    "WARNING:"
+                    " TTS model %r threw error %r. Retrying. If this keeps failing,"
+                    " override the TTS_MODEL_NAME setting, and/or file a bug if it's the"
+                    " default setting.",
+                    settings.TTS_MODEL_NAME
+                )
                 time.sleep(1) # because the loop doesn't respond to Ctrl-C otherwise
 
         audio = AudioSegment.from_wav(audio_file.name)
@@ -174,14 +178,14 @@ def strip_stop_words(response: str) -> Optional[str]:
     if stripped_response == "":
         stripped_response = None
     
-    print(f"stripped response: {stripped_response!r}, for response: {response!r}")
+    logging.debug("strip_stop_words(%r): returning %r", response, stripped_response)
     return stripped_response
 
 
 def warm_up_stt_engine(stt_engine, source):
     # warm up / initialize the speech-to-text engine
     if source.stream is None:
-        print("ERROR: SpeechRecognition/pyaudio microphone failed to initialize. This seems to be a bug in the pyaudio or SpeechRecognition libraries, but check your MICROPHONE_DEVICE_INDEX setting?", file=sys.stderr)
+        logging.error("SpeechRecognition/pyaudio microphone failed to initialize. This seems to be a bug in the pyaudio or SpeechRecognition libraries, but check your MICROPHONE_DEVICE_INDEX setting?")
 
         class DummyStream:
             def close(self):
@@ -243,6 +247,7 @@ def build_prompt_text(assistant_name: str, assistant_desc: str, chat_log: List[s
     prompt = '\n'.join((context, *limited_chat_log, f'{assistant_name}: '))
     return prompt
 
+
 def clean_ai_response(text: str) -> str:
     return text.replace('\u200b', '')
 
@@ -262,7 +267,7 @@ def get_assistant_response(tts_engine, context: str, chat_log: List[str], assist
 
             if response_text is None:
                 time.sleep(2)
-                print("Retrying request to KoboldAI API", file=sys.stderr)
+                logger.warning("Got no (valid) output from the LLM. Retrying request to KoboldAI API.")
                 continue
             else:
                 break
@@ -302,8 +307,6 @@ def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True
 
         # Get user input
         try:
-            sys.stdout.flush()
-
             audio = stt_engine.listen(source, timeout=settings.LISTEN_SECONDS)
 
             user_response = recognize(audio)
@@ -320,18 +323,18 @@ def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True
                 continue
 
             for stt_hallucination in [ settings.STT_HALLUCINATIONS ]:
-                if stripped_user_response == stt_hallucination:
-                    # debugging
-                    print(f"Detected speech-to-text hallucination: {stripped_user_response!r}")
+                if stripped_user_response != stt_hallucination:
+                    logger.debug(f"No match for %r as a speech-to-text hallucination against %r", stripped_user_response, stt_hallucination)
+                    continue
                     
+                logger.debug("Detected speech-to-text hallucination: %r", stripped_user_response)
+
                 if notify_on_silent_periods:
                     silent_periods_count += 1
 
-                    # hacky approach to a labeled continue
-                    return None
-                else:
-                    # debugging
-                    print(f"No match for {stripped_user_response!r} as a speech-to-text hallucination against {stt_hallucination!r}")
+                # hacky approach to a labeled continue: we return to the
+                # outer wrapper function, where we try to get input again.
+                return None
 
             # got a valid user response at this point
             if notify_on_silent_periods:
@@ -342,11 +345,17 @@ def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True
             if notify_on_silent_periods:
                 silent_periods_count += 1
 
+    assert False, "reached unreachable code!"
+
 
 def get_user_response(tts_engine, stt_engine, source, notify_on_silent_periods=True):
     """handler user input & input validation/retry loop"""
 
-    # hacky factored-out loop to handle python's lack of labeled-continue.
+    # NOTE: this function doesn't appear to do much, but what it does is wrap the
+    # inner function and its loop in another loop, so that we can return from the
+    # inner function, to iterate the outer loop, kind of like a
+    # 'continue :outer_loop_name'
+
     user_input = None
     while not user_input:
         user_input = get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=notify_on_silent_periods)
@@ -384,21 +393,21 @@ def serve():
     mic = stt.Microphone(device_index=mic_device_index)
 
     if mic is None:
-        print("ERROR: couldn't find a working microphone on this system! Connect/enable one, or set MICROPHONE_DEVICE_INDEX in the settings to force its selection.", file=sys.stderr)
+        logger.error("Couldn't find a working microphone on this system! Connect/enable one, or set MICROPHONE_DEVICE_INDEX in the settings to force its selection.")
         return 1 # error exit code
 
     chat_log = []
 
     with mic as source:
         if settings.AUTO_CALIBRATE_MIC is True:
-            print(f"Calibrating microphone; please wait {settings.AUTO_CALIBRATE_MIC_SECONDS} seconds (warning: this doesn't seem to work, and might result in the AI not hearing your speech!) ...")
+            logger.info(f"Calibrating microphone; please wait %d seconds (warning: this doesn't seem to work, and might result in the AI not hearing your speech!) ...", settings.AUTO_CALIBRATE_MIC_SECONDS)
             stt_engine.adjust_for_ambient_noise(source, duration=settings.AUTO_CALIBRATE_MIC_SECONDS)
-            print(f"Calibration complete.")
+            logger.info(f"Microphone calibration complete.")
 
-        print("Initializing models and caching some data. Please wait, it could take a few minutes.")
+        logger.info("Initializing models and caching some data. Please wait, it could take a few minutes.")
 
         if not warm_up_stt_engine(stt_engine, source):
-            print("ERROR: couldn't initialise the speech-to-text engine! Check previous error messages.", file=sys.stderr)
+            logger.error("Couldn't initialise the speech-to-text engine! Check previous error messages.")
             return 1 # error exit code
 
         warm_up_tts_engine(tts_engine)
@@ -407,13 +416,15 @@ def serve():
         print(initial_log_line)
         chat_log.append(initial_log_line)
 
-        print("Ready to go.")
+        ("Ready to go.")
 
         say(tts_engine, settings.FULL_ASSISTANT_GREETING)
 
         # main dialog loop
         while True:
-            print(f"{settings.USER_NAME}: ", end="")
+            # prompt user visually, though ideally they don't need to
+            # look at output; just interact by voice.
+            print(f"{settings.USER_NAME}: ", end=""); sys.stdout.flush()
 
             notify_on_silent_periods = not sleeping
             user_response = get_user_response(tts_engine, stt_engine, source, notify_on_silent_periods=notify_on_silent_periods)
@@ -454,19 +465,31 @@ def main():
 
     settings = build_settings()
     if settings is None:
-        print("ERROR: couldn't load settings! Exiting.", file=sys.stderr)
+        logger.error("ERROR: couldn't load settings! Exiting.", file=sys.stderr)
         return 1
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--quiet', action='store_true')
     parser.add_argument('mode', choices=('serve', 'list-mics',))
 
     args = parser.parse_args()
 
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug("Debug mode enabled.")
+
+    if args.quiet:
+        logging.getLogger().setLevel(logging.WARNING)
+
     if args.mode == 'serve':
         try:
             return serve()
+
         except KeyboardInterrupt:
-            print("Exiting on user request.")
+            msg = "Exiting on user request."
+            logger.info(msg)
+            print(msg)
 
     elif args.mode == "list-mics":
         stt_engine = stt.Recognizer()
@@ -474,7 +497,7 @@ def main():
         mic_list = stt.Microphone.list_microphone_names()
         for k, v in enumerate(mic_list):
             print(f"Device {k}: {v}")
-    
+
         print("I think the working microphones are:")
         working_mics = stt.Microphone.list_working_microphones()
 
