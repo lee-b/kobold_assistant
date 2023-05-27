@@ -165,6 +165,12 @@ Any of these models will work.  They're listed with the easiest model to run fir
 - Any other 4bit, 128b safetensors llama-based model from huggingface should also work, using the above approaches.
 
 
+## Known-bad models
+
+- `TheBloke/vicuna-7b-1.1-GPTQ-4bit-128g`
+  - Seems to output ' \u200b' a lot, instead of a response.
+
+
 ## Building (for developers)
 
 To just use it, don't do this. See the installation instructions above! But, if you want
