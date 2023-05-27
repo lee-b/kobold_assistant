@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kobold-assistant"
-version = "0.1.3"
+version = "0.1.4"
 description = ""
 authors = ["Lee Braiden <leebraid@gmail.com>"]
 license = "AGPL v3"
