@@ -59,7 +59,7 @@ def prompt_ai(prompt: str, stop_words: List[str]) -> str:
         'max_context_length': settings.MAX_CONTEXT_LENGTH,
         'rep_pen': 1.5,
 #        'sampler_full_determinism': True,
-        'stop_sequence': [r' \u200b'] + stop_words,
+        'stop_sequence': stop_words,
         'frmttriminc': True,
     }
 
