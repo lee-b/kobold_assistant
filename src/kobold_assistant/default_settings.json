@@ -6,6 +6,7 @@
 
   "ASSISTANT_NAME": "Jenny",
   "ASSISTANT_DESC": "Jenny is your tirelessly helpful AI assistant.",
+  "ASSISTANT_SOUL_NUMBER": null,
 
   "TTS_MODEL_NAME": "tts_models/en/jenny/jenny",
 

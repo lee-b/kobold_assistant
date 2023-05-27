@@ -51,13 +51,20 @@ def get_microphone_device_id(Microphone) -> int:
     return None
 
 
-def prompt_ai(prompt: str) -> str:
+def prompt_ai(prompt: str, stop_words: List[str]) -> str:
     post_data = {
         'prompt': prompt,
         'temperature': settings.GENERATE_TEMPERATURE,
-#        'max_length': settings.MAX_TOKENS,
-#        'max_context_length': settings.MAX_CONTEXT_LENGTH,
+        'max_length': min(settings.MAX_TOKENS, 512),
+        'max_context_length': settings.MAX_CONTEXT_LENGTH,
+        'rep_pen': 1.5,
+#        'sampler_full_determinism': True,
+        'stop_sequence': [r' \u200b'] + stop_words,
+        'frmttriminc': True,
     }
+
+    if settings.ASSISTANT_SOUL_NUMBER:
+        post_data['sampler_seed'] = settings.ASSISTANT_SOUL_NUMBER
 
     post_json = json.dumps(post_data)
     post_json_bytes = post_json.encode('utf8')
@@ -78,11 +85,9 @@ def prompt_ai(prompt: str) -> str:
             return None
 
     except urllib.error.URLError as e:
-        print(f"ERROR: the KoboldAI API returned {e!r}!", file=sys.stderr)
-        json_response = None
+        logger.error(f"ERROR: the KoboldAI API returned %r!", e)
 
-    return json_response
-
+    return None
 
 # horrible global hack for now; will get fixed
 temp_audio_files = {}
@@ -110,6 +115,8 @@ def expand_to_pronounced_word_form(text):
 def say(tts_engine, text, cache=False, warmup_only=False):
     # horrible global hack for now; will get fixed
     global temp_audio_files
+
+    assert text.strip() != "", "called say() without any text"
 
     # TODO: Choose (or obtain from config) the best speaker
     #       in a better way, per tss_engine.
@@ -157,7 +164,7 @@ def say(tts_engine, text, cache=False, warmup_only=False):
 
 
 def strip_stop_words(response: str) -> Optional[str]:
-    for stop_word in settings.AI_MODEL_STOP_WORDS + [r' \u200b']:
+    for stop_word in settings.AI_MODEL_STOP_WORDS:
         if stop_word in response:
             logger.debug("stop word %r FOUND in %r", stop_word, response)
             response = response.split(stop_word)[0]
@@ -186,7 +193,15 @@ def warm_up_stt_engine(stt_engine, source):
         return False
 
     audio = stt_engine.listen(source, 0)
-    stt_engine.recognize_whisper(audio, model=settings.WHISPER_MODEL, language=settings.LANGUAGE.lower())
+
+    done = False
+    while not done:
+        try:
+            stt_engine.recognize_whisper(audio, model=settings.WHISPER_MODEL, language=settings.LANGUAGE.lower())
+            done = True
+        except RuntimeError as e:
+            # TODO: should try to say something aloud here, for pure voice-only interactivity
+            logger.warning("Speech-to-text engine failed to recognise audio, with error %r. Retrying.", e)
 
     return True
 
@@ -207,6 +222,8 @@ def warm_up_tts_engine(tts_engine):
 
 
 def build_prompt_text(assistant_name: str, assistant_desc: str, chat_log: List[str], max_context_length: int) -> str:
+    max_context_length = max_context_length # koboldai's API doesn't allow more, for now.
+
     context = "" + assistant_desc
     context_len = len(assistant_desc) + len(assistant_name) + len("\n\n:")
 
@@ -242,7 +259,7 @@ def get_assistant_response(tts_engine, context: str, chat_log: List[str], assist
                 # Try to naturally let the user know that this will take a while
                 say(tts_engine, settings.THINKING, cache=True)
 
-            response_text = prompt_ai(conversation_so_far)
+            response_text = prompt_ai(conversation_so_far, settings.AI_MODEL_STOP_WORDS)
 
             if response_text is None:
                 time.sleep(2)
@@ -251,22 +268,26 @@ def get_assistant_response(tts_engine, context: str, chat_log: List[str], assist
             else:
                 break
 
-        remapped_text = response_text
+        stripped_response_text = strip_stop_words(response_text)
+        if stripped_response_text is None:
+            return settings.NON_COMMITTAL_RESPONSE, True
+
+        cleaned_text = clean_ai_response(stripped_response_text)
+
+        remapped_text = cleaned_text
         for remap_key, remap_val in settings.AI_TEXT_TO_SPEECH_REMAPPINGS.items():
             remapped_text = remapped_text.replace(remap_key, remap_val)
-
-        stripped_response_text = strip_stop_words(remapped_text)
 
         # TODO: Handle bad responses by looping with varying
         #       seeds/temperatures until we get a proper response.
         #
         #       For now, we just return a canned non-commital response
         #       instead
-        if stripped_response_text is None:
-            stripped_response_text = settings.NON_COMMITTAL_RESPONSE
-            return stripped_response_text, True
+        if remapped_text is None or remapped_text.strip() == "":
+            return settings.NON_COMMITTAL_RESPONSE, True
         else:
-            return stripped_response_text, False
+            # TODO: eventually we'll move the return out of this loop and imrpvoe the logic to retry generation until it's good
+            return remapped_text, False
 
 
 def get_user_input(tts_engine, stt_engine, source) -> Optional[str]:
@@ -451,4 +472,3 @@ def main():
 
         for k, v in working_mics.items():
             print(f"Device {k}: {v}")
-
