@@ -190,6 +190,10 @@ Now edit the files and `poetry run kobold-assistant serve` to test.
 
 ## Troubleshooting
 
+### The assistant keeps talking, in a one-sided conversation
+
+This is probably the speech recognition picking up environmental audio.  Tell it to sleep and wake it later if you want it to not listen and respond, or else tune your microphone so that it doesn't pick up random environmental noises.
+
 ### 'Hmm. I don't know what to say. Could you rephrase that?'
 
 This is happens frequently right now, but is really just filler for the AI not responding
@@ -206,6 +210,16 @@ This is a bug in the TTS library, if you press Ctrl-C while it's download a mode
 This happens when the whisper text-to-speech model hallucinates, and kobold-assistant notices. Essentially, it just means that the text-to-speech model misheard you, or only heard noise and made a guess. Check the MICROPHONE\_DEVICE\_INDEX setting (or it may be listening for audio on a device that's not producing any audio!).  Check your microphone settings (such as the microphone volume and noise cancellation options), and generally ensure that your microphone works: that it's not too quiet or too loud, and so on.  OR, just try again: kobold-assistant will try to recover from this and just go on as if you didn't say anything yet.  If this happens every time, though, you have a configuration issue.
 
 There may be other hallucinations (random text detected that you didn't actually say) that whisper generates, that aren't currently detected. If you encounter any others, please file a PR or bug report. However, sometimes it will just mishear what you say; that much is normal. Try to perfect your microphone settings, and enunciate as clearly as you can.
+
+### VRAM / GPU resource errors
+
+`WARNING:root:Speech-to-text engine failed to recognise audio, with error RuntimeError('cuDNN error: CUDNN_STATUS_INTERNAL_ERROR'). Retrying.`
+
+or:
+
+`WARNING:root:Speech-to-text engine failed to recognise audio, with error RuntimeError('GET was unable to find an engine to execute this computation'). Retrying.`
+
+I believe either of these warnings is your GPU running out of VRAM (or some other resource) that a model needs. Try allocating the layers differently in KoboldAI, setting CUDA\_VISIBLE\_DEVICES to allocate cards differently if you have multiple GPUs, changing the models used in kobold-assistant settings for speech-to-text and text-to-speech, or if all else fails, you may need to upgrade your system or buy/rent a different system.
 
 
 ## Bugs and support
