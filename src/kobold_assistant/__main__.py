@@ -323,6 +323,7 @@ def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True
                 if stripped_user_response == stt_hallucination:
                     # debugging
                     print(f"Detected speech-to-text hallucination: {stripped_user_response!r}")
+                    
                 if notify_on_silent_periods:
                     silent_periods_count += 1
 
