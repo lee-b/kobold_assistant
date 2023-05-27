@@ -28,7 +28,7 @@ from pydub.playback import play as play_audio_segment
 from .settings import build_settings
 
 
-logger = logging.getLogger()
+logger = logging.getLogger('kobold-assistant')
 
 
 # TODO: make this non-global
