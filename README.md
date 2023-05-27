@@ -8,6 +8,10 @@ The assistant is called Jenny by default, per the speech model.
 
 You can tweak the assistant name, speech-to-text model, text-to-speech model, prompts, etc. through configuration, though the config system needs more work to be user-friendly and future-proof.
 
+## Discord Server
+
+We have a channel on the Kobold-AI server. Please try to file real bugs and requests on github instead, but this is a good place to initially discuss possible bugs, chat about ideas,
+etc. https://discord.com/channels/849937185893384223/1110256272403599481
 
 ## Running
 
