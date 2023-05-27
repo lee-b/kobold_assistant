@@ -78,6 +78,7 @@
       "(laughs)": "{LAUGHTER_TRIGGER}",
       "(laugh)": "{LAUGHTER_TRIGGER}",
       "❤": "I love it.",
+      "🤔": "Hmm.",
       "🙂": "{LAUGHTER_TRIGGER}",
       " 😊": "{LAUGHTER_TRIGGER}",
       "🥰": "I love it.",
