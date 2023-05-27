@@ -289,13 +289,14 @@ def get_assistant_response(tts_engine, context: str, chat_log: List[str], assist
             return remapped_text, False
 
 
-def get_user_input(tts_engine, stt_engine, source) -> Optional[str]:
+def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True) -> Optional[str]:
     recognize = lambda audio: stt_engine.recognize_whisper(audio, model=settings.WHISPER_MODEL)
 
-    silent_periods_count = 0
+    if notify_on_silent_periods:
+        silent_periods_count = 0
 
     while True:
-        if silent_periods_count > settings.SILENCE_REPROMPT_PERIODS_MAX:
+        if notify_on_silent_periods and silent_periods_count > settings.SILENCE_REPROMPT_PERIODS_MAX:
             say(tts_engine, settings.SILENT_PERIOD_PROMPT, cache=True)
             silent_periods_count = 0
 
@@ -308,18 +309,21 @@ def get_user_input(tts_engine, stt_engine, source) -> Optional[str]:
             user_response = recognize(audio)
 
             if len(user_response) == 0:
-                silent_periods_count += 1
+                if notify_on_silent_periods:
+                    silent_periods_count += 1
                 continue
 
             stripped_user_response = user_response.strip()
             if not stripped_user_response:
-                silent_periods_count += 1
+                if notify_on_silent_periods:
+                    silent_periods_count += 1
                 continue
 
             for stt_hallucination in [ settings.STT_HALLUCINATIONS ]:
                 if stripped_user_response == stt_hallucination:
                     # debugging
                     print(f"Detected speech-to-text hallucination: {stripped_user_response!r}")
+                if notify_on_silent_periods:
                     silent_periods_count += 1
 
                     # hacky approach to a labeled continue
@@ -329,20 +333,22 @@ def get_user_input(tts_engine, stt_engine, source) -> Optional[str]:
                     print(f"No match for {stripped_user_response!r} as a speech-to-text hallucination against {stt_hallucination!r}")
 
             # got a valid user response at this point
-            silent_periods_count = 0
+            if notify_on_silent_periods:
+                silent_periods_count = 0
             return stripped_user_response
 
         except stt.exceptions.WaitTimeoutError:
-            silent_periods_count += 1
+            if notify_on_silent_periods:
+                silent_periods_count += 1
 
 
-def get_user_response(tts_engine, stt_engine, source):
+def get_user_response(tts_engine, stt_engine, source, notify_on_silent_periods=True):
     """handler user input & input validation/retry loop"""
 
     # hacky factored-out loop to handle python's lack of labeled-continue.
     user_input = None
     while not user_input:
-        user_input = get_user_input(tts_engine, stt_engine, source)
+        user_input = get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=notify_on_silent_periods)
 
     return user_input
 
@@ -407,7 +413,9 @@ def serve():
         # main dialog loop
         while True:
             print(f"{settings.USER_NAME}: ", end="")
-            user_response = get_user_response(tts_engine, stt_engine, source)
+
+            notify_on_silent_periods = not sleeping
+            user_response = get_user_response(tts_engine, stt_engine, source, notify_on_silent_periods=notify_on_silent_periods)
             print(user_response)
 
             user_command = clean_as_user_command(user_response)
