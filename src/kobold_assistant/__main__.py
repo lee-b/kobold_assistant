@@ -25,6 +25,7 @@ from pydub import AudioSegment
 from pydub.playback import play as play_audio_segment
 
 
+from .radio_silence import RadioSilence
 from .settings import build_settings
 
 
@@ -79,7 +80,8 @@ def prompt_ai(prompt: str, stop_words: List[str]) -> str:
         json_response = json.loads(response_obj.read().decode(response_charset))
 
         try:
-            return json_response['results'][0]['text']
+            response_text = json_response['results'][0]['text']
+            return response_text
         except (KeyError, IndexError) as e:
             logger.error("KoboldAI API returned an unexpected response format!")
             return None
@@ -137,7 +139,7 @@ def say(tts_engine, text, cache=False, warmup_only=False):
 
         params = {
             "emotion": "Happy",
-            "speed": 1.8,
+            "speed": settings.TTS_SPEECH_SPEED,
             "text": expanded_text,
             "file_path": audio_file.name,
         }
@@ -145,15 +147,17 @@ def say(tts_engine, text, cache=False, warmup_only=False):
         tts_done = False
         while not tts_done:
             try:
-                wav_audio = tts_engine.tts_to_file(**params)
+                with RadioSilence(stdout=True, stderr=False):
+                    wav_audio = tts_engine.tts_to_file(**params)
                 tts_done = True
-            except BaseException as e:
+            except Exception as e:
                 logger.error(
                     "WARNING:"
                     " TTS model %r threw error %r. Retrying. If this keeps failing,"
                     " override the TTS_MODEL_NAME setting, and/or file a bug if it's the"
                     " default setting.",
-                    settings.TTS_MODEL_NAME
+                    settings.TTS_MODEL_NAME,
+                    e,
                 )
                 time.sleep(1) # because the loop doesn't respond to Ctrl-C otherwise
 
@@ -322,7 +326,7 @@ def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True
                     silent_periods_count += 1
                 continue
 
-            for stt_hallucination in [ settings.STT_HALLUCINATIONS ]:
+            for stt_hallucination in settings.STT_HALLUCINATIONS:
                 if stripped_user_response != stt_hallucination:
                     logger.debug(f"No match for %r as a speech-to-text hallucination against %r", stripped_user_response, stt_hallucination)
                     continue
@@ -339,6 +343,7 @@ def get_user_input(tts_engine, stt_engine, source, notify_on_silent_periods=True
             # got a valid user response at this point
             if notify_on_silent_periods:
                 silent_periods_count = 0
+
             return stripped_user_response
 
         except stt.exceptions.WaitTimeoutError:
@@ -378,19 +383,80 @@ def clean_as_user_command(s: str) -> str:
     return "".join((c for c in s.lower() if c in minimal_command_chars)).strip()
 
 
-def serve():
+def run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat_log):
+    if settings.AUTO_CALIBRATE_MIC is True:
+        logger.info(f"Calibrating microphone; please wait %d seconds (warning: this doesn't seem to work, and might result in the AI not hearing your speech!) ...", settings.AUTO_CALIBRATE_MIC_SECONDS)
+        stt_engine.adjust_for_ambient_noise(source, duration=settings.AUTO_CALIBRATE_MIC_SECONDS)
+        logger.info(f"Microphone calibration complete.")
+
+    logger.info("Initializing models and caching some data. Please wait, it could take a few minutes.")
+
+    if not warm_up_stt_engine(stt_engine, source):
+        logger.error("Couldn't initialise the speech-to-text engine! Check previous error messages.")
+        return 1 # error exit code
+
+    warm_up_tts_engine(tts_engine)
+
+    initial_log_line = f"{settings.ASSISTANT_NAME}: {settings.FULL_ASSISTANT_GREETING}"
+
+    print("All systems go.")
+
+    print(f"{settings.ASSISTANT_NAME_COLOR}{initial_log_line}{settings.RESET_COLOR}")
+    chat_log.append(initial_log_line)
+
+    say(tts_engine, settings.FULL_ASSISTANT_GREETING)
+
     sleeping = False
 
+    # main dialog loop
+    while True:
+        # prompt user visually, though ideally they don't need to
+        # look at output; just interact by voice.
+        print(f"{settings.USER_NAME_COLOR}{settings.USER_NAME}:{settings.RESET_COLOR} ", end=""); sys.stdout.flush()
+
+        notify_on_silent_periods = not sleeping
+        user_response = get_user_response(tts_engine, stt_engine, source, notify_on_silent_periods=notify_on_silent_periods)
+        print(f"{settings.USER_NAME_COLOR}{user_response}{settings.RESET_COLOR}")
+
+        user_command = clean_as_user_command(user_response)
+        if user_command == settings.SLEEP_COMMAND.lower():
+            sleeping = True
+            say(tts_engine, settings.GOING_TO_SLEEP, cache=True)
+            print(f"[{settings.ASSISTANT_NAME} is now sleeping, say {settings.WAKE_COMMAND} to wake]")
+            continue
+
+        elif sleeping and user_command == settings.WAKE_COMMAND.lower():
+            sleeping = False
+            print(f"[{settings.ASSISTANT_NAME} is now awake, say {settings.SLEEP_COMMAND} to undo]")
+            say(tts_engine, settings.WAKING_UP, cache=True)
+            continue
+
+        elif sleeping:
+            logging.warning("In sleep mode. Ignoring user input %r. Wake the assistant with %r", user_response, settings.WAKE_COMMAND)
+            continue
+
+        user_response_log_line = f'{settings.USER_NAME}: {user_response}'
+        chat_log.append(user_response_log_line)
+
+        assistant_response, cached_response = get_assistant_response(tts_engine, context, chat_log, settings.ASSISTANT_NAME, settings.ASSISTANT_DESC)
+        chat_log.append(f'{settings.ASSISTANT_NAME}: {assistant_response}')
+        print(f'{settings.ASSISTANT_NAME_COLOR}{settings.ASSISTANT_NAME}: {assistant_response}{settings.RESET_COLOR}')
+
+        say(tts_engine, assistant_response, cache=cached_response)
+
+
+def serve():
     context = "\n".join((settings.CONTEXT_PREFIX, settings.CONTEXT, settings.CONTEXT_SUFFIX))
 
-    tts_engine = TTS(settings.TTS_MODEL_NAME)
-
     # set up microphone and speech recognition
-    stt_engine = stt.Recognizer()
-    stt_engine.energy_threshold = settings.STT_ENERGY_THRESHOLD
+    with RadioSilence(stdout=True):
+        tts_engine = TTS(settings.TTS_MODEL_NAME)
 
-    mic_device_index = get_microphone_device_id(stt.Microphone)
-    mic = stt.Microphone(device_index=mic_device_index)
+        stt_engine = stt.Recognizer()
+        stt_engine.energy_threshold = settings.STT_ENERGY_THRESHOLD
+
+        mic_device_index = get_microphone_device_id(stt.Microphone)
+        mic = stt.Microphone(device_index=mic_device_index)
 
     if mic is None:
         logger.error("Couldn't find a working microphone on this system! Connect/enable one, or set MICROPHONE_DEVICE_INDEX in the settings to force its selection.")
@@ -398,62 +464,15 @@ def serve():
 
     chat_log = []
 
-    with mic as source:
-        if settings.AUTO_CALIBRATE_MIC is True:
-            logger.info(f"Calibrating microphone; please wait %d seconds (warning: this doesn't seem to work, and might result in the AI not hearing your speech!) ...", settings.AUTO_CALIBRATE_MIC_SECONDS)
-            stt_engine.adjust_for_ambient_noise(source, duration=settings.AUTO_CALIBRATE_MIC_SECONDS)
-            logger.info(f"Microphone calibration complete.")
+    source = None
+    with RadioSilence(stdout=True):
+        source = mic.__enter__()
 
-        logger.info("Initializing models and caching some data. Please wait, it could take a few minutes.")
+    try:
+        run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat_log)
 
-        if not warm_up_stt_engine(stt_engine, source):
-            logger.error("Couldn't initialise the speech-to-text engine! Check previous error messages.")
-            return 1 # error exit code
-
-        warm_up_tts_engine(tts_engine)
-
-        initial_log_line = f"{settings.ASSISTANT_NAME}: {settings.FULL_ASSISTANT_GREETING}"
-        print(initial_log_line)
-        chat_log.append(initial_log_line)
-
-        ("Ready to go.")
-
-        say(tts_engine, settings.FULL_ASSISTANT_GREETING)
-
-        # main dialog loop
-        while True:
-            # prompt user visually, though ideally they don't need to
-            # look at output; just interact by voice.
-            print(f"{settings.USER_NAME}: ", end=""); sys.stdout.flush()
-
-            notify_on_silent_periods = not sleeping
-            user_response = get_user_response(tts_engine, stt_engine, source, notify_on_silent_periods=notify_on_silent_periods)
-            print(user_response)
-
-            user_command = clean_as_user_command(user_response)
-            if user_command == settings.SLEEP_COMMAND.lower():
-                sleeping = True
-                say(tts_engine, settings.GOING_TO_SLEEP, cache=True)
-                continue
-
-            elif sleeping and user_command == settings.WAKE_COMMAND.lower():
-                sleeping = False
-                say(tts_engine, settings.WAKING_UP, cache=True)
-                continue
-
-            elif sleeping:
-                logging.warning("In sleep mode. Ignoring user input %r. Wake the assistant with %r", user_response, settings.WAKE_COMMAND)
-                continue
-
-            user_response_log_line = f'{settings.USER_NAME}: {user_response}'
-            chat_log.append(user_response_log_line)
-
-            assistant_response, cached_response = get_assistant_response(tts_engine, context, chat_log, settings.ASSISTANT_NAME, settings.ASSISTANT_DESC)
-            log_line = f'{settings.ASSISTANT_NAME}: {assistant_response}'
-            print(log_line)
-            chat_log.append(log_line)
-
-            say(tts_engine, assistant_response, cache=cached_response)
+    finally:
+        mic.__exit__(None, None, None)
 
     return 0
 
@@ -461,7 +480,7 @@ def serve():
 def main():
     global settings # horrible hack for now
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     settings = build_settings()
     if settings is None:
@@ -478,28 +497,30 @@ def main():
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.debug("Debug mode enabled.")
-
-    if args.quiet:
+    elif args.quiet:
         logging.getLogger().setLevel(logging.WARNING)
+        logging.getLogger('gruut').setLevel(logging.WARNING)
 
-    if args.mode == 'serve':
-        try:
+    try:
+        if args.mode == 'serve':
             return serve()
 
-        except KeyboardInterrupt:
-            msg = "Exiting on user request."
-            logger.info(msg)
-            print(msg)
+        elif args.mode == "list-mics":
+            print(f"Using mic_device_index {settings.MICROPHONE_DEVICE_INDEX}, per settings. These are the available microphone devices:\n")
 
-    elif args.mode == "list-mics":
-        stt_engine = stt.Recognizer()
-        print(f"Using mic_device_index {settings.MICROPHONE_DEVICE_INDEX}, per settings. These are the available microphone devices:\n")
-        mic_list = stt.Microphone.list_microphone_names()
-        for k, v in enumerate(mic_list):
-            print(f"Device {k}: {v}")
+            with RadioSilence():
+                stt_engine = stt.Recognizer()
+                mic_list = stt.Microphone.list_microphone_names()
+                for k, v in enumerate(mic_list):
+                    print(f"Device {k}: {v}")
 
-        print("I think the working microphones are:")
-        working_mics = stt.Microphone.list_working_microphones()
+                print("I think the working microphones are:")
+                working_mics = stt.Microphone.list_working_microphones()
 
-        for k, v in working_mics.items():
-            print(f"Device {k}: {v}")
+                for k, v in working_mics.items():
+                    print(f"Device {k}: {v}")
+
+    except KeyboardInterrupt:
+        msg = "Exiting on user request."
+        logger.info(msg)
+        print(msg)

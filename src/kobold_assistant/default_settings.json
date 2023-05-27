@@ -9,6 +9,7 @@
   "ASSISTANT_SOUL_NUMBER": null,
 
   "TTS_MODEL_NAME": "tts_models/en/jenny/jenny",
+  "TTS_SPEECH_SPEED": 1.5,
 
   "WHISPER_MODEL": "medium.en",
 
@@ -16,7 +17,7 @@
 
   "SLOW_AI_RESPONSES": false,
 
-  "GENERATE_TEMPERATURE": 0.4,
+  "GENERATE_TEMPERATURE": 0.2,
   "MAX_TOKENS": 300,
   "MAX_CONTEXT_LENGTH": 2048,
 
@@ -68,10 +69,11 @@
       "</START>",
       "I'll see you next time.",
       "Please see review 125",
+      "I'll see you in the next video.",
       "."
   ],
 
-  "LAUGHTER_TRIGGER": ":laughing:",
+  "LAUGHTER_TRIGGER": "Ha hah",
 
   "AI_TEXT_TO_SPEECH_REMAPPINGS": {
       "(pauses)": "...",
@@ -103,5 +105,9 @@
   },
 
   "AUTO_CALIBRATE_MIC": false,
-  "AUTO_CALIBRATE_MIC_SECONDS": 5
+  "AUTO_CALIBRATE_MIC_SECONDS": 5,
+
+  "USER_NAME_COLOR": "\u001b[32m",
+  "ASSISTANT_NAME_COLOR": "\u001b[36m",
+  "RESET_COLOR": "\u001b[39m"
 }

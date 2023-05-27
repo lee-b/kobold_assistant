@@ -60,7 +60,7 @@ def expand_any_template_vars_in(v: Any, settings: Dict[str, Any]) -> Any:
 
 def build_settings():
     settings_template = load_settings_template()
-    
+
     settings = { k: v for k, v in settings_template.items() if k in base_setting_names }
     remaining_settings = { k for k in settings_template.keys() if k not in base_setting_names }
 
