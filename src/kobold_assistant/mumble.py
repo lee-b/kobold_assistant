@@ -1,92 +1,98 @@
 import wave
-import tempfile
 import threading
-import time
+import opuslib
 import speech_recognition as sr
-import pymumble_py3 as pymumble
-import pymumble_py3.constants as pymumble_constants
-from pymumble_py3.soundqueue import SoundQueue, SoundChunk
+from pymumble_py3 import Mumble
+from pymumble_py3.constants import PYMUMBLE_CLBK_TEXTMESSAGERECEIVED as EVT_TEXT_MSG
+from pymumble_py3.constants import PYMUMBLE_CLBK_SOUNDRECEIVED as EVT_SOUND_RECEIVED
+from typing import List, Optional
+from io import BytesIO
+from pydub import AudioSegment
+import audioop
 
 
 class MumbleClient:
     def __init__(self, server, port, username, password, listen_to_users):
-        self.mumble = pymumble.Mumble(server, user=username, password=password, port=int(port))
-        self.mumble.start()  # start the mumble connection in a new thread
-        time.sleep(1)  # wait a bit to give the connection a chance to establish
+        self.mumble = Mumble(server, user=username, password=password, port=port, debug=False)
+        self.mumble.callbacks.set_callback(EVT_TEXT_MSG, self.text_received)
+        self.mumble.callbacks.set_callback(EVT_SOUND_RECEIVED, self.sound_received)
+        self.mumble.set_receive_sound(True)
 
-        # state control events
-        self.receive_state = threading.Event()
-        self.send_state = threading.Event()
         self.recognizer = sr.Recognizer()
+        self.audio_data = BytesIO()
+        self.listen_to_users = listen_to_users
 
-        # Recognized text
-        self.recognized_text = ""
+        self.mumble.start()
+        self.mumble.is_ready()  # Wait for client is ready
 
-        # Setup sound queues only for specified users
-        for user_session_id, user in self.mumble.users.items():
-            print(f"I see user {user['name']}")
+        self.send_audio_event = threading.Event()
 
-        self.sound_queues = {user['name']: SoundQueue(self.mumble) for user in self.mumble.users.values() if user['name'] in listen_to_users}
+    def send_audio_thread(self, wav_file: str):
+        audio = AudioSegment.from_wav(wav_file)
+        audio = audio.set_channels(1)  # Set to mono
+        audio = audio.set_frame_rate(48000)  # Set frame rate to 48000 Hz
+        audio = audio.set_sample_width(2)  # Set sample width to 2 bytes (16 bits)
 
-        print(f"self.sound_queues.keys() is {self.sound_queues.keys()!r}")
+        # Convert audio to raw PCM data
+        raw_data = audio.raw_data
 
-    def start_receive_text(self):
-        self.receive_state.set()
-        threading.Thread(target=self.receive_text).start()
+        # Now, you can send the PCM data in chunks
+        for i in range(0, len(raw_data), 960*2):  # 2 bytes per sample
+            frames = raw_data[i:i+960*2]
+            if not frames:
+                break
+            if audio.sample_width != 2:
+                frames = audioop.lin2lin(frames, audio.sample_width, 2)
+            self.mumble.sound_output.add_sound(frames)
 
-    def stop_receive_text(self):
-        self.receive_state.clear()
-
-    def start_send_audio(self, wav_file):
-        self.send_state.set()
-        threading.Thread(target=self.send_audio, args=(wav_file,)).start()
+    def start_send_audio(self, wav_file: str):
+        self.send_audio_event.clear()
+        self.send_audio_thread_obj = threading.Thread(target=self.send_audio_thread, args=(wav_file,))
+        self.send_audio_thread_obj.start()
 
     def stop_send_audio(self):
-        self.send_state.clear()
+        self.send_audio_event.set()
+        if self.send_audio_thread_obj:
+            self.send_audio_thread_obj.join()
 
-    def receive_text(self):
-        while self.receive_state.is_set():
-            for user_name, sound_queue in self.sound_queues.items():
-                matching_users = [ u for u in self.mumble.users.values() if u['name'] == user_name ]
-                if len(matching_users) == 0:
-                    continue
+    def sound_received(self, user, soundchunk):
+        if user['name'] in self.listen_to_users:
+            self.audio_data.write(soundchunk.pcm)
 
-                user = matching_users[0]
+    def text_received(self, message):
+        pass  # Handle text messages if needed
 
-                while sound_queue.is_sound():
-                    sound_chunk = sound_queue.get_sound()
-                    # If we got a sound chunk
-                    if sound_chunk is not None:
-                        with tempfile.NamedTemporaryFile(delete=True) as temp_wav:
-                            # Write the raw audio data to the temporary wav file
-                            wave_writer = wave.open(temp_wav.name, 'wb')
-                            wave_writer.setnchannels(1)
-                            wave_writer.setsampwidth(2)  # size in bytes
-                            wave_writer.setframerate(48000.0)
-                            wave_writer.writeframes(sound_chunk.pcm)
-                            wave_writer.close()
+    def start_receive_text(self):
+        self.mumble.channels.find_by_name('Root').send_text_message('Start receiving text')
 
-                            # Feed the audio file to the speech recognizer
-                            with sr.AudioFile(temp_wav.name) as source:
-                                audio = self.recognizer.record(source)
+    def stop_receive_text(self):
+        self.mumble.channels.find_by_name('Root').send_text_message('Stop receiving text')
 
-                            # Add the recognized text to our text
-                            recognized_bit = self.recognizer.recognize_whisper(audio, model="medium.en", language="english")
-                            self.recognized_text += recognized_bit
+    def get_recognized_text(self) -> Optional[str]:
+        self.audio_data.seek(0)
+        raw_data = self.audio_data.read()
 
-    def send_audio(self, wav_file):
-        wf = wave.open(wav_file, "rb")
-        while self.send_state.is_set():
-            data = wf.readframes(1024)
-            if not data:
-                break
-            self.mumble.sound_output.add_sound(data)
-        wf.close()
-
-    def get_recognized_text(self):
-        return self.recognized_text
+        # Create a wave file in memory
+        output = BytesIO()
+        with wave.open(output, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(48000)
+            wav_file.writeframes(raw_data)
+        
+        output.seek(0)
+        with sr.AudioFile(output) as source:
+            audio = self.recognizer.record(source)
+        try:
+            return self.recognizer.recognize_google(audio)
+        except sr.UnknownValueError:
+            return None
 
     def close(self):
-        self.stop_receive_text()
-        self.stop_send_audio()
         self.mumble.stop()
+
+    def send_audio(self, wav_file: str):
+        self.start_send_audio(wav_file)
+
+    def receive_text(self):
+        self.start_receive_text()
