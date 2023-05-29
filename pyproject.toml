@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kobold-assistant"
-version = "0.1.4"
+version = "0.1.5"
 description = ""
 authors = ["Lee Braiden <leebraid@gmail.com>"]
 license = "AGPL v3"
@@ -26,6 +26,8 @@ urllib3 = "<2"
 torchaudio = "^2.0.2"
 tts = "^0.14.0"
 gruut = "^2.2.3"
+pymumble = "^1.6.1"
+pulsectl = "^23.5.2"
 
 
 [tool.poetry.group.dev.dependencies]
