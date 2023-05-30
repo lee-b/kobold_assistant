@@ -1,6 +1,17 @@
 import os
 
 
+class FakeSilence:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *_):
+        pass
+
+
 class RadioSilence:
     """
     Adapted further from https://stackoverflow.com/a/67962563 for kobold-assistant.

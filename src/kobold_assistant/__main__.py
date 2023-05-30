@@ -27,7 +27,7 @@ from pydub.playback import play as play_audio_segment
 
 from .mumble import MumbleClient
 
-from .radio_silence import RadioSilence
+from .radio_silence import FakeSilence, RadioSilence
 from .settings import build_settings
 
 
@@ -36,6 +36,7 @@ logger = logging.getLogger('kobold-assistant')
 
 # TODO: make this non-global
 settings = None
+
 
 def get_microphone_device_id(Microphone) -> int:
     """
@@ -115,7 +116,7 @@ def expand_to_pronounced_word_form(text):
     return expanded_text
 
 
-def say(mumble_client, tts_engine, text, cache=False, warmup_only=False):
+def say(mumble_client, tts_engine, text, cache=False, warmup_only=False, debug=False):
     # horrible global hack for now; will get fixed
     global temp_audio_files
 
@@ -145,7 +146,9 @@ def say(mumble_client, tts_engine, text, cache=False, warmup_only=False):
     tts_done = False
     while not tts_done:
         try:
-            with RadioSilence(stdout=True, stderr=False):
+            SilenceProvider = RadioSilence if not debug else FakeSilence
+
+            with SilenceProvider(stdout=True, stderr=False):
                 wav_audio = tts_engine.tts_to_file(**params)
             tts_done = True
         except Exception as e:
@@ -207,7 +210,7 @@ def warm_up_stt_engine(stt_engine, source):
     return True
 
 
-def warm_up_tts_engine(mumble_client, tts_engine):
+def warm_up_tts_engine(mumble_client, tts_engine, debug):
     # warm up / initialize the text-to-speech engine
     common_responses_to_cache = [
         settings.SILENT_PERIOD_PROMPT,
@@ -219,7 +222,7 @@ def warm_up_tts_engine(mumble_client, tts_engine):
         common_responses_to_cache.append(settings.THINKING)
 
     for common_response_to_cache in common_responses_to_cache:
-        say(mumble_client, tts_engine, common_response_to_cache, cache=True, warmup_only=True)
+        say(mumble_client, tts_engine, common_response_to_cache, cache=True, warmup_only=True, debug=debug)
 
 
 def build_prompt_text(assistant_name: str, assistant_desc: str, chat_log: List[str], max_context_length: int) -> str:
@@ -250,7 +253,7 @@ def clean_ai_response(text: str) -> str:
     return text.replace('\u200b', '')
 
 
-def get_assistant_response(mumble_client, tts_engine, context: str, chat_log: List[str], assistant_name: str, assistant_desc: str) -> Tuple[str, bool]:
+def get_assistant_response(mumble_client, tts_engine, context: str, chat_log: List[str], assistant_name: str, assistant_desc: str, debug: bool) -> Tuple[str, bool]:
     conversation_so_far = build_prompt_text(assistant_name, assistant_desc, chat_log, settings.MAX_CONTEXT_LENGTH)
 
     stripped_response_text = None
@@ -259,7 +262,7 @@ def get_assistant_response(mumble_client, tts_engine, context: str, chat_log: Li
         while True:
             if settings.SLOW_AI_RESPONSES:
                 # Try to naturally let the user know that this will take a while
-                say(mumble_client, tts_engine, settings.THINKING, cache=True)
+                say(mumble_client, tts_engine, settings.THINKING, cache=True, debug=debug)
 
             response_text = prompt_ai(conversation_so_far, settings.AI_MODEL_STOP_WORDS)
 
@@ -292,13 +295,13 @@ def get_assistant_response(mumble_client, tts_engine, context: str, chat_log: Li
             return remapped_text, False
 
 
-def get_user_input(mumble_client, tts_engine, stt_engine, source, notify_on_silent_periods=True) -> Optional[str]:
+def get_user_input(mumble_client, tts_engine, stt_engine, source, notify_on_silent_periods=True, debug=True) -> Optional[str]:
     if notify_on_silent_periods:
         silent_periods_count = 0
 
     while True:
 #        if notify_on_silent_periods and silent_periods_count > (settings.SILENCE_REPROMPT_PERIODS_MAX:
-#            say(mumble_client, tts_engine, settings.SILENT_PERIOD_PROMPT, cache=True)
+#            say(mumble_client, tts_engine, settings.SILENT_PERIOD_PROMPT, cache=True, debug=debug)
 #            silent_periods_count = 0
 
         # Get user input
@@ -374,19 +377,14 @@ def clean_as_user_command(s: str) -> str:
     return "".join((c for c in s.lower() if c in minimal_command_chars)).strip()
 
 
-def run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat_log, mumble_client):
-    if settings.AUTO_CALIBRATE_MIC is True:
-        logger.info(f"Calibrating microphone; please wait %d seconds (warning: this doesn't seem to work, and might result in the AI not hearing your speech!) ...", settings.AUTO_CALIBRATE_MIC_SECONDS)
-        stt_engine.adjust_for_ambient_noise(source, duration=settings.AUTO_CALIBRATE_MIC_SECONDS)
-        logger.info(f"Microphone calibration complete.")
-
+def run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat_log, mumble_client, debug):
     logger.info("Initializing models and caching some data. Please wait, it could take a few minutes.")
 
     if not warm_up_stt_engine(stt_engine, source):
         logger.error("Couldn't initialise the speech-to-text engine! Check previous error messages.")
         return 1 # error exit code
 
-    warm_up_tts_engine(mumble_client, tts_engine)
+    warm_up_tts_engine(mumble_client, tts_engine, debug)
 
     initial_log_line = f"{settings.ASSISTANT_NAME}: {settings.FULL_ASSISTANT_GREETING}"
 
@@ -395,7 +393,7 @@ def run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat
     print(f"{settings.ASSISTANT_NAME_COLOR}{initial_log_line}{settings.RESET_COLOR}")
     chat_log.append(initial_log_line)
 
-    say(mumble_client, tts_engine, settings.FULL_ASSISTANT_GREETING)
+    say(mumble_client, tts_engine, settings.FULL_ASSISTANT_GREETING, debug=debug)
 
     sleeping = False
 
@@ -416,14 +414,14 @@ def run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat
         user_command = clean_as_user_command(user_response)
         if user_command == settings.SLEEP_COMMAND.lower():
             sleeping = True
-            say(mumble_client, tts_engine, settings.GOING_TO_SLEEP, cache=True)
+            say(mumble_client, tts_engine, settings.GOING_TO_SLEEP, cache=True, debug=debug)
             print(f"[{settings.ASSISTANT_NAME} is now sleeping, say {settings.WAKE_COMMAND} to wake]")
             continue
 
         elif sleeping and user_command == settings.WAKE_COMMAND.lower():
             sleeping = False
             print(f"[{settings.ASSISTANT_NAME} is now awake, say {settings.SLEEP_COMMAND} to undo]")
-            say(mumble_client, tts_engine, settings.WAKING_UP, cache=True)
+            say(mumble_client, tts_engine, settings.WAKING_UP, cache=True, debug=debug)
             continue
 
         elif sleeping:
@@ -433,17 +431,19 @@ def run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat
         user_response_log_line = f'{settings.USER_NAME}: {user_response}'
         chat_log.append(user_response_log_line)
 
-        assistant_response, cached_response = get_assistant_response(mumble_client, tts_engine, context, chat_log, settings.ASSISTANT_NAME, settings.ASSISTANT_DESC)
+        assistant_response, cached_response = get_assistant_response(mumble_client, tts_engine, context, chat_log, settings.ASSISTANT_NAME, settings.ASSISTANT_DESC, debug)
         chat_log.append(f'{settings.ASSISTANT_NAME}: {assistant_response}')
         print(f'{settings.ASSISTANT_NAME_COLOR}{settings.ASSISTANT_NAME}: {assistant_response}{settings.RESET_COLOR}')
 
-        say(mumble_client, tts_engine, assistant_response, cache=cached_response)
+        say(mumble_client, tts_engine, assistant_response, cache=cached_response, debug=debug)
 
 
-def serve(mumble_client):
+def serve(mumble_client, settings, args):
     context = "\n".join((settings.CONTEXT_PREFIX, settings.CONTEXT, settings.CONTEXT_SUFFIX))
 
     # set up microphone and speech recognition
+    SilenceProvider = RadioSilence if not args.debug else FakeSilence
+
     with RadioSilence(stdout=True):
         tts_engine = TTS(settings.TTS_MODEL_NAME)
 
@@ -460,11 +460,12 @@ def serve(mumble_client):
     chat_log = []
 
     source = None
-    with RadioSilence(stdout=True):
+
+    with SilenceProvider(stdout=True):
         source = mic.__enter__()
 
     try:
-        run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat_log, mumble_client)
+        run_assistant_dialog(settings, stt_engine, tts_engine, source, context, chat_log, mumble_client, args.debug)
 
     finally:
         mic.__exit__(None, None, None)
@@ -506,12 +507,14 @@ def main():
     try:
         if args.mode == 'serve':
             mumble_client = MumbleClient(args.mumble_server_address, args.mumble_port, args.mumble_username, args.mumble_password, c_and_c_users)
-            return serve(mumble_client)
+            return serve(mumble_client, settings, args)
 
         elif args.mode == "list-mics":
             print(f"Using mic_device_index {settings.MICROPHONE_DEVICE_INDEX}, per settings. These are the available microphone devices:\n")
 
-            with RadioSilence():
+            SilenceProvider = RadioSilence if not args.debug else FakeSilence
+
+            with SilenceProvider():
                 stt_engine = stt.Recognizer()
                 mic_list = stt.Microphone.list_microphone_names()
                 for k, v in enumerate(mic_list):
