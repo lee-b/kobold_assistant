@@ -9,10 +9,11 @@ from typing import List, Optional
 from io import BytesIO
 from pydub import AudioSegment
 import audioop
+import time
 
 
 class MumbleClient:
-    def __init__(self, server, port, username, password, listen_to_users):
+    def __init__(self, server, port, username, password, user_list):
         self.mumble = Mumble(server, user=username, password=password, port=port, debug=False)
         self.mumble.callbacks.set_callback(EVT_TEXT_MSG, self.text_received)
         self.mumble.callbacks.set_callback(EVT_SOUND_RECEIVED, self.sound_received)
@@ -20,12 +21,16 @@ class MumbleClient:
 
         self.recognizer = sr.Recognizer()
         self.audio_data = BytesIO()
-        self.listen_to_users = listen_to_users
+        self.user_list = user_list
 
         self.mumble.start()
         self.mumble.is_ready()  # Wait for client is ready
 
-        self.send_audio_event = threading.Event()
+        self.audio_sent_event = threading.Event()
+        self.audio_sent_event.clear()
+
+        self.audio_received_event = threading.Event()
+        self.audio_received_event.clear()
 
     def send_audio_thread(self, wav_file: str):
         audio = AudioSegment.from_wav(wav_file)
@@ -45,30 +50,49 @@ class MumbleClient:
                 frames = audioop.lin2lin(frames, audio.sample_width, 2)
             self.mumble.sound_output.add_sound(frames)
 
-    def start_send_audio(self, wav_file: str):
-        self.send_audio_event.clear()
+        self.audio_sent_event.set()
+
+    def await_send_completion(self):
+        if self.send_audio_thread_obj:
+            while True:
+                if self.audio_sent_event.wait(1):
+                    break
+
+            self.send_audio_thread_obj.join()
+
+    def send_audio(self, wav_file: str):
+        print("Sending audio")
+        self.audio_sent_event.clear()
         self.send_audio_thread_obj = threading.Thread(target=self.send_audio_thread, args=(wav_file,))
         self.send_audio_thread_obj.start()
 
-    def stop_send_audio(self):
-        self.send_audio_event.set()
-        if self.send_audio_thread_obj:
-            self.send_audio_thread_obj.join()
-
     def sound_received(self, user, soundchunk):
-        if user['name'] in self.listen_to_users:
+        # ignore incoming audio while we're sending, to avoid feedback
+        if not self.audio_sent_event.is_set():
+            print("Ignoring incoming audio while talking")
+            return
+
+        if user['name'] in self.user_list:
             self.audio_data.write(soundchunk.pcm)
+            print("Recieved and stored audio")
 
     def text_received(self, message):
         pass  # Handle text messages if needed
 
     def start_receive_text(self):
-        self.mumble.channels.find_by_name('Root').send_text_message('Start receiving text')
+        pass
 
     def stop_receive_text(self):
-        self.mumble.channels.find_by_name('Root').send_text_message('Stop receiving text')
+        pass
 
     def get_recognized_text(self) -> Optional[str]:
+        print("get_recognized_text(): called")
+
+        self.audio_received_event.clear()
+        print("get_recognized_text(): listening")
+        time.sleep(3000)
+        print("get_recognized_text(): done listening")
+
         self.audio_data.seek(0)
         raw_data = self.audio_data.read()
 
@@ -79,20 +103,20 @@ class MumbleClient:
             wav_file.setsampwidth(2)
             wav_file.setframerate(48000)
             wav_file.writeframes(raw_data)
-        
+
         output.seek(0)
         with sr.AudioFile(output) as source:
             audio = self.recognizer.record(source)
+
+        self.audio_received_event.clear()
+
         try:
-            return self.recognizer.recognize_google(audio)
+            recognized = self.recognizer.recognize_whisper(audio, model="medium.en")
+            print(f"get_recognized_text(): returning {recognized}")
+            return recognized
         except sr.UnknownValueError:
+            print(f"get_recognized_text(): returning None")
             return None
 
     def close(self):
         self.mumble.stop()
-
-    def send_audio(self, wav_file: str):
-        self.start_send_audio(wav_file)
-
-    def receive_text(self):
-        self.start_receive_text()
