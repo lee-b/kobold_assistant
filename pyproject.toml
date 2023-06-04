@@ -28,6 +28,7 @@ tts = "^0.14.0"
 gruut = "^2.2.3"
 pymumble = "^1.6.1"
 pulsectl = "^23.5.2"
+aiortc = "^1.5.0"
 
 
 [tool.poetry.group.dev.dependencies]

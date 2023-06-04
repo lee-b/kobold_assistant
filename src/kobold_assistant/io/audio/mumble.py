@@ -90,7 +90,7 @@ class MumbleClient:
 
         self.audio_received_event.clear()
         print("get_recognized_text(): listening")
-        time.sleep(50)
+        asyncio.sleep(50)
         print("get_recognized_text(): done listening")
 
         self.audio_data.seek(0)
