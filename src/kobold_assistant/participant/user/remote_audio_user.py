@@ -1,8 +1,9 @@
 import time
 import logging
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
-from ...audio_io.audio_io import AudioIO
+from ...io.audio.audio_io import AudioIO
 from ...dialog_history.dialog_history import DialogEvent, DialogHistory
 from ...dialog_history.typed_text_event import TypedTextEvent
 from ...stt.stt import STTEngine

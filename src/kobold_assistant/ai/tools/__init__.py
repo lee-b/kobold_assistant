@@ -1,5 +1,8 @@
 from abc import ABC
 
+from ..prompt import AIPrompt
+
+
 
 class AITool(ABC):
     def get_name(self) -> str:

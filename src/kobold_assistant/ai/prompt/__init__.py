@@ -1,10 +1,6 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from ..model.ai_model import AIModelHandler
-from ..params import AIParam, AIParams
-
-
 @dataclass
 class AIPrompt:
     assistant_name: str

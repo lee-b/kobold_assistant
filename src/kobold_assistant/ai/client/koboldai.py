@@ -4,7 +4,6 @@ import urllib
 from typing import List
 
 from .ai_client import AIClient
-from ..model.guess import guess_ai_model_from_name
 
 
 logger = logging.getLogger(__name__)

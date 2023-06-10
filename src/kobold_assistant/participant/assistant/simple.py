@@ -4,7 +4,8 @@ from typing import List, Sequence
 
 from ...ai.client.ai_client import AIClient
 from ...ai.model.ai_model import AIModelHandler
-from ...ai.prompt import AIPrompt, AIParam, AIParams
+from ...ai.prompt import AIPrompt
+from ...ai.params import AIParams
 from ...ai.memory.memory import AIMemory
 from ...ai.tools import AITool
 from ...dialog_history.event import DialogEvent

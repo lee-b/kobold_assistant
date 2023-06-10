@@ -1,7 +1,12 @@
 import copy
 import json
+import logging
+import sys
 from pathlib import Path
 from typing import Any, Dict
+
+
+logger = logging.getLogger(__name__)
 
 
 class AttrDict(dict):
@@ -85,7 +90,8 @@ def build_settings():
                 pass
 
         if not made_progress:
-            print("ERROR: cyclic dependencies in settings {remaining_settings!r}", file=sys.stderr)
+            failed_settings = { k: v for k, v in settings_template.items() if k in remaining_settings}
+            logger.fatal("cyclic dependencies in settings %r", failed_settings)
             return None
 
     return AttrDict(**settings)

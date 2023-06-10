@@ -1,7 +1,10 @@
-from ..client import AIClient
+import logging
 
 from .ai_model import AIModelHandler
 from .default import DefaultAIModel
+
+
+logger = logging.getLogger(__name__)
 
 
 async def guess_ai_model_handler_from_name(model_name: str) -> AIModelHandler:

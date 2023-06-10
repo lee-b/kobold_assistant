@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -24,8 +25,8 @@ async def load_settings(argv):
 
     settings = build_settings()
     if settings is None:
-        logger.error("ERROR: couldn't load settings! Exiting.", file=sys.stderr)
-        return 1
+        logger.fatal("ERROR: couldn't load settings! Exiting.")
+        return None, None
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--debug', action='store_true')
@@ -63,6 +64,8 @@ async def serve(settings):
 
 async def async_main():
     settings, args = await load_settings(sys.argv[1:])
+    if settings is None:
+        return os.EX_CONFIG
 
     try:
         if args.mode == 'serve':
@@ -72,6 +75,7 @@ async def async_main():
         msg = "Exiting on user request."
         logger.info(msg)
 
+    return os.EX_OK
 
 def main():
     sys.exit(asyncio.run(async_main()))

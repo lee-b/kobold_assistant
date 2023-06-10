@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Awaitable, Callable, Sequence
 
 from ..participant.participant import Participant
-from .event import DialogEvent, TextDialogEvent
+from .event import DialogEvent
 
 
-DialogEventHandler = Callable[[DialogEvent, history: DialogHistory], Awaitable[None]]
+DialogEventHandler = Callable[[DialogEvent, 'DialogHistory'], Awaitable[None]]
 
 
 class DialogHistory:

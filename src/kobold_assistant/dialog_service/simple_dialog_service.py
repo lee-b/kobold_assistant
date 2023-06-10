@@ -2,14 +2,14 @@ import asyncio
 import logging
 import time
 from tempfile import NamedTemporaryFile
-from typing import AsyncCallable, Dict, Mapping, Sequence, Union
+from typing import Awaitable, Callable, Dict, Mapping, Sequence, Union
 
 from ..participant.assistant.assistant import Assistant
 from ..participant.user.user import User
 from ..ai.client.ai_client import AIClient
 from ..ai.model.ai_model import AIModelHandler
 from ..ai.memory.memory import AIMemory
-from ..audio_io.audio_io import AudioIO
+from ..io.audio.audio_io import AudioIO
 from ..stt.stt import STTEngine
 from ..tts.tts import TTSEngine
 from ..dialog_history.dialog_history import DialogHistory
