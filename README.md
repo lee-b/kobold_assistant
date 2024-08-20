@@ -1,6 +1,6 @@
 # Kobold-Assistant
 
-### NOTE: This was a fun project in the early ChatGPT days.  Now, it's outdated.  I'd recommend looking at open-webui + llama.cpp + openedai-speech.
+### NOTE: This was a fun project in the early ChatGPT days.  Now, it's outdated.  I'd recommend looking at open-webui + llama.cpp + openedai-speech, until the true end-to-end multimodal models are available for this.
 
 A fully offline voice assistant interface to KoboldAI's large language model API. Can probably also work online with the KoboldAI horde and online speech-to-text and text-to-speech models, if you really want it to.
 
